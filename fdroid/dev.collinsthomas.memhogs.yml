@@ -1,0 +1,27 @@
+Categories:
+  - System
+License: MIT
+AuthorName: Collins Thomas
+AuthorWebSite: https://www.collinsthomas.dev/
+WebSite: https://cicerothoma.github.io/memhogs
+SourceCode: https://github.com/cicerothoma/memhogs-android
+IssueTracker: https://github.com/cicerothoma/memhogs-android/issues
+Changelog: https://github.com/cicerothoma/memhogs-android/releases
+
+AutoName: memhogs
+
+RepoType: git
+Repo: https://github.com/cicerothoma/memhogs-android.git
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1
+    commit: v0.1.0
+    subdir: app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9.]+$
+CurrentVersion: 0.1.0
+CurrentVersionCode: 1

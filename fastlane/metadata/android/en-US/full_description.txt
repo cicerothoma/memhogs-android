@@ -1,0 +1,13 @@
+memhogs shows which apps are using your phone's memory, largest first, with every helper process rolled up into the app that owns it. Chrome's sandboxed renderers count toward Chrome, not toward twelve rows of "sandboxed_process" noise.
+
+Memory is measured as PSS, read from dumpsys meminfo: a page shared by N processes counts 1/N toward each, so summing all apps never counts the same physical memory twice. This is the same fair metric Android itself uses to decide which app to kill under pressure, and the same one the memhogs command line tool uses on Linux.
+
+Features:
+
+* Every app and service ranked by honest memory use, with proportional bars
+* Tap a row to see its member processes with their PIDs
+* Safe memory reclaim: kills an app's background processes only, the same reclaim Android performs under pressure, then reports exactly how much came back
+* Filter by name, and a live mode that refreshes every five seconds
+* A RAM pressure bar that turns red past 85%
+
+memhogs needs Shizuku (available on F-Droid and Play) for shell access. No root required: start the Shizuku service once per boot via wireless debugging and grant memhogs access. Without Shizuku, Android hides other apps' memory, and memhogs shows only the device-wide totals.

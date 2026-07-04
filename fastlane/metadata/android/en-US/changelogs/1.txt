@@ -1,0 +1,4 @@
+First release. Apps ranked by fair memory use (PSS), helpers grouped
+under their owning app, safe background-process reclaim with a measured
+delta, name filter, live mode, and a terminal-style setup flow for
+Shizuku.
