@@ -61,8 +61,12 @@ safety working as intended. System daemons never offer the button.
 
 Grab the APK from the
 [releases page](https://github.com/cicerothoma/memhogs-android/releases)
-and sideload it. An F-Droid submission is in review, and a Play Store
-listing is planned; this page will link both when they are live.
+and sideload it. The
+[memhogs website](https://cicerothoma.github.io/memhogs/#android) has a
+step-by-step walkthrough including the Shizuku setup. Store listings
+(F-Droid, Play) may come later; the releases page is the canonical
+source either way, and the repo carries ready-to-submit F-Droid
+metadata in `fdroid/` for when that day comes.
 
 Requires Android 8.0 or newer. The full experience requires the Shizuku
 service to be running.
