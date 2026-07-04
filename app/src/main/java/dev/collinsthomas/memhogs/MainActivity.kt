@@ -26,6 +26,7 @@ import dev.collinsthomas.memhogs.ui.UiGroup
 import dev.collinsthomas.memhogs.ui.UiMember
 import dev.collinsthomas.memhogs.ui.UiSnapshot
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
@@ -43,6 +44,10 @@ class MainActivity : ComponentActivity() {
     private var error by mutableStateOf<String?>(null)
     private var shizukuInstalled by mutableStateOf(false)
     private var motion by mutableStateOf(true)
+    private var reclaimMsg by mutableStateOf<String?>(null)
+
+    /** Package, label, and pre-kill size of an `am kill` awaiting its delta. */
+    private var pendingReclaim: Triple<String, String, Long>? = null
 
     private var shell: IShellService? = null
 
@@ -86,6 +91,7 @@ class MainActivity : ComponentActivity() {
                 gauge = gauge,
                 refreshing = refreshing,
                 error = error,
+                reclaimMsg = reclaimMsg,
                 shizukuInstalled = shizukuInstalled,
                 motion = motion,
                 onRefresh = {
@@ -96,6 +102,7 @@ class MainActivity : ComponentActivity() {
                 onRequestPermission = { Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST) },
                 onOpenShizuku = ::openShizuku,
                 onGetShizuku = ::getShizukuFromGitHub,
+                onReclaim = ::reclaim,
             )
         }
     }
@@ -157,11 +164,49 @@ class MainActivity : ComponentActivity() {
                     return@launch
                 }
                 snapshot = withContext(Dispatchers.Default) { toUi(parsed) }
+                resolvePendingReclaim()
             } catch (e: Exception) {
                 error = e.message ?: e.toString()
             } finally {
                 refreshing = false
             }
+        }
+    }
+
+    /**
+     * Kills [pkg]'s background processes via `am kill`, the same reclaim the
+     * system performs under memory pressure, then refreshes and reports how
+     * much came back. Foreground apps and active services are untouched.
+     */
+    private fun reclaim(pkg: String) {
+        val svc = shell ?: return
+        val before = snapshot?.groups?.find { it.key == pkg } ?: return
+        pendingReclaim = Triple(pkg, before.label, before.memKb)
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) { svc.run("am kill $pkg") }
+                delay(900) // give the kernel a beat to settle before measuring
+                refresh()
+            } catch (e: Exception) {
+                pendingReclaim = null
+                error = e.message ?: e.toString()
+            }
+        }
+    }
+
+    private fun resolvePendingReclaim() {
+        val (pkg, label, before) = pendingReclaim ?: return
+        pendingReclaim = null
+        val after = snapshot?.groups?.find { it.key == pkg }?.memKb ?: 0L
+        val delta = before - after
+        reclaimMsg = if (delta > 0) {
+            "$label: reclaimed ${humanKb(delta)}"
+        } else {
+            "$label: nothing to reclaim right now"
+        }
+        lifecycleScope.launch {
+            delay(5000)
+            reclaimMsg = null
         }
     }
 
@@ -187,8 +232,10 @@ class MainActivity : ComponentActivity() {
                     label = g.label,
                     isApp = g.isApp,
                     mem = humanKb(g.pssKb),
+                    memKb = g.pssKb,
                     pctFrac = frac,
                     pctText = String.format(Locale.US, "%.1f%%", frac * 100),
+                    canReclaim = g.isApp && g.packageName != BuildConfig.APPLICATION_ID,
                     members = g.members.map { m ->
                         UiMember(name = m.processName, pid = m.pid, mem = humanKb(m.pssKb))
                     },

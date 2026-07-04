@@ -11,12 +11,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -103,14 +101,11 @@ fun EatingLoader(motion: Boolean, modifier: Modifier = Modifier) {
 
 /**
  * The RAM gauge as a row of memory cells that fill left to right, amber
- * until [hotAt], red past it. While [refreshing], the pac rides the fill
- * edge, chomping its way across.
+ * until [hotAt], red past it.
  */
 @Composable
 fun BitBar(
     frac: Float,
-    refreshing: Boolean,
-    motion: Boolean,
     modifier: Modifier = Modifier,
     hotAt: Float = 0.85f,
 ) {
@@ -120,34 +115,23 @@ fun BitBar(
         label = "fill",
     )
     val hot = frac >= hotAt
-    BoxWithConstraints(modifier.fillMaxWidth().height(14.dp)) {
-        val barWidth = maxWidth
-        Canvas(Modifier.fillMaxWidth().height(14.dp)) {
-            val gap = 3.dp.toPx()
-            val cellW = 7.dp.toPx()
-            val n = ((size.width + gap) / (cellW + gap)).toInt().coerceAtLeast(1)
-            val filled = fill * n
-            val on = if (hot) Palette.Red else Palette.Amber
-            for (i in 0 until n) {
-                val color = when {
-                    i + 1 <= filled -> on
-                    i < filled -> on.copy(alpha = (filled - i).coerceIn(0.15f, 1f))
-                    else -> Palette.Cell
-                }
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(i * (cellW + gap), 0f),
-                    size = Size(cellW, size.height),
-                    cornerRadius = CornerRadius(2.dp.toPx()),
-                )
+    Canvas(modifier.fillMaxWidth().height(14.dp)) {
+        val gap = 3.dp.toPx()
+        val cellW = 7.dp.toPx()
+        val n = ((size.width + gap) / (cellW + gap)).toInt().coerceAtLeast(1)
+        val filled = fill * n
+        val on = if (hot) Palette.Red else Palette.Amber
+        for (i in 0 until n) {
+            val color = when {
+                i + 1 <= filled -> on
+                i < filled -> on.copy(alpha = (filled - i).coerceIn(0.15f, 1f))
+                else -> Palette.Cell
             }
-        }
-        if (refreshing && motion) {
-            Pac(
-                size = 20.dp,
-                chomping = true,
-                modifier = Modifier
-                    .offset(x = (barWidth * fill) - 10.dp, y = (-3).dp),
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(i * (cellW + gap), 0f),
+                size = Size(cellW, size.height),
+                cornerRadius = CornerRadius(2.dp.toPx()),
             )
         }
     }

@@ -1,6 +1,7 @@
 package dev.collinsthomas.memhogs.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -12,6 +13,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +32,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.collinsthomas.memhogs.mem.humanKb
 import kotlinx.coroutines.delay
+import kotlin.math.ceil
 
 enum class ShizukuAccess { NOT_RUNNING, NEEDS_PERMISSION, READY }
 
@@ -67,8 +73,11 @@ data class UiGroup(
     val label: String,
     val isApp: Boolean,
     val mem: String,
+    val memKb: Long,
     val pctFrac: Double,
     val pctText: String,
+    /** True when `am kill` can safely reclaim this group's background memory. */
+    val canReclaim: Boolean,
     val members: List<UiMember>,
 )
 
@@ -97,12 +106,14 @@ fun MemhogsApp(
     gauge: Gauge?,
     refreshing: Boolean,
     error: String?,
+    reclaimMsg: String?,
     shizukuInstalled: Boolean,
     motion: Boolean,
     onRefresh: () -> Unit,
     onRequestPermission: () -> Unit,
     onOpenShizuku: () -> Unit,
     onGetShizuku: () -> Unit,
+    onReclaim: (String) -> Unit,
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -138,6 +149,15 @@ fun MemhogsApp(
                     onRefresh = onRefresh,
                     onToggleLive = { live = !live },
                 )
+                AnimatedVisibility(visible = reclaimMsg != null) {
+                    Text(
+                        reclaimMsg ?: "",
+                        fontFamily = mono,
+                        fontSize = 12.sp,
+                        color = Palette.Green,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
                 when (access) {
                     ShizukuAccess.NOT_RUNNING -> SetupScreen(
                         shizukuInstalled, motion, onOpenShizuku, onGetShizuku, onRefresh,
@@ -148,7 +168,7 @@ fun MemhogsApp(
                         snapshot == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             EatingLoader(motion)
                         }
-                        else -> GroupList(snapshot, motion)
+                        else -> GroupList(snapshot, motion, onReclaim)
                     }
                 }
             }
@@ -212,7 +232,7 @@ private fun Header(
         else -> 0f to ""
     }
     if (line.isNotEmpty()) {
-        BitBar(frac = frac, refreshing = refreshing, motion = motion)
+        BitBar(frac = frac)
         Text(
             line,
             fontFamily = mono,
@@ -254,31 +274,35 @@ private fun LiveChip(live: Boolean, motion: Boolean, onToggle: () -> Unit) {
 
 @Composable
 private fun RefreshGlyph(refreshing: Boolean, motion: Boolean, onRefresh: () -> Unit) {
-    val angle: Float = if (refreshing && motion) {
-        val t = rememberInfiniteTransition(label = "refresh")
-        t.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(800, easing = LinearEasing)),
-            label = "spin",
-        ).value
-    } else 0f
-    Text(
-        "↻",
-        fontFamily = mono,
-        fontSize = 22.sp,
-        color = if (refreshing) Palette.Amber else Palette.Dim,
+    // Spins smoothly while a refresh is in flight; when it ends, the icon
+    // finishes its current turn and eases to rest instead of snapping.
+    val angle = remember { Animatable(0f) }
+    LaunchedEffect(refreshing, motion) {
+        if (refreshing && motion) {
+            while (true) {
+                angle.animateTo(angle.value + 360f, tween(750, easing = LinearEasing))
+            }
+        } else if (angle.value != 0f) {
+            angle.animateTo(ceil(angle.value / 360f) * 360f, tween(400))
+            angle.snapTo(0f)
+        }
+    }
+    Icon(
+        Icons.Filled.Refresh,
+        contentDescription = "Refresh",
+        tint = if (refreshing) Palette.Amber else Palette.Dim,
         modifier = Modifier
             .clickable(enabled = !refreshing, onClick = onRefresh)
-            .padding(4.dp)
-            .rotate(angle),
+            .padding(6.dp)
+            .size(22.dp)
+            .rotate(angle.value),
     )
 }
 
 // ------------------------------------------------------------------ list
 
 @Composable
-private fun GroupList(snapshot: UiSnapshot, motion: Boolean) {
+private fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String) -> Unit) {
     var filter by rememberSaveable { mutableStateOf("") }
     var expanded by remember { mutableStateOf(setOf<String>()) }
 
@@ -315,6 +339,7 @@ private fun GroupList(snapshot: UiSnapshot, motion: Boolean) {
                     onToggle = {
                         expanded = if (g.key in expanded) expanded - g.key else expanded + g.key
                     },
+                    onReclaim = { onReclaim(g.key) },
                 )
             }
         }
@@ -385,8 +410,9 @@ private fun GroupRow(
     motion: Boolean,
     expanded: Boolean,
     onToggle: () -> Unit,
+    onReclaim: () -> Unit,
 ) {
-    val expandable = g.members.size > 1
+    val expandable = g.members.size > 1 || g.canReclaim
     val hot = g.pctFrac >= HOT_SHARE
     val bar by animateFloatAsState(
         targetValue = relFrac.coerceIn(0.02f, 1f),
@@ -435,27 +461,8 @@ private fun GroupRow(
                         color = if (g.isApp) Palette.Cyan else Palette.Green,
                     )
                     if (expandable) {
-                        Text(
-                            "${g.members.size} processes",
-                            fontFamily = mono,
-                            fontSize = 12.sp,
-                            color = Palette.Dim,
-                        )
+                        ExpandChip(expanded, g.members.size)
                     }
-                }
-                if (expandable) {
-                    val chevron by animateFloatAsState(
-                        targetValue = if (expanded) 180f else 0f,
-                        animationSpec = tween(250),
-                        label = "chevron",
-                    )
-                    Text(
-                        "▾",
-                        fontFamily = mono,
-                        fontSize = 16.sp,
-                        color = Palette.Dim,
-                        modifier = Modifier.rotate(chevron),
-                    )
                 }
             }
         }
@@ -464,7 +471,7 @@ private fun GroupRow(
             enter = expandVertically(tween(250)) + fadeIn(tween(250)),
             exit = shrinkVertically(tween(200)),
         ) {
-            Column(Modifier.padding(start = 14.dp, bottom = 6.dp)) {
+            Column(Modifier.padding(start = 14.dp, bottom = 8.dp)) {
                 g.members.forEachIndexed { i, m ->
                     val glyph = if (i == g.members.lastIndex) "└─" else "├─"
                     Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -488,8 +495,49 @@ private fun GroupRow(
                         )
                     }
                 }
+                if (g.canReclaim) {
+                    Row(Modifier.padding(top = 12.dp)) {
+                        TermButton("reclaim memory", onClick = onReclaim)
+                    }
+                    Text(
+                        "kills background processes only, the same reclaim " +
+                            "android does under memory pressure. nothing you " +
+                            "have open is touched.",
+                        fontFamily = mono,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp,
+                        color = Palette.Dim,
+                        modifier = Modifier.padding(top = 8.dp, end = 12.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+/** The tap target for expansion: an explicit chip, not a lone chevron. */
+@Composable
+private fun ExpandChip(expanded: Boolean, count: Int) {
+    Row(
+        Modifier
+            .padding(top = 5.dp)
+            .border(1.dp, Palette.Dim.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 9.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (expanded) "▾" else "▸",
+            fontFamily = mono,
+            fontSize = 11.sp,
+            color = Palette.Amber,
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            if (count == 1) "1 process" else "$count processes",
+            fontFamily = mono,
+            fontSize = 11.sp,
+            color = Palette.Text.copy(alpha = 0.85f),
+        )
     }
 }
 
