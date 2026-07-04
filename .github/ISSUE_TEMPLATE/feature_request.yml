@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest a view, metric, or behavior change
+title: "[feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation where memhogs falls short, not the solution yet.
+      placeholder: I want to know which app drained memory overnight, but the list only shows the current moment.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like memhogs to do?
+      placeholder: A history view that snapshots memory every few minutes while the screen is off.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround, if any
+      placeholder: Keeping adb connected and running dumpsys meminfo from a laptop.

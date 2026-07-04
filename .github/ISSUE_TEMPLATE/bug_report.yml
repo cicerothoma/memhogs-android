@@ -1,0 +1,42 @@
+name: Bug report
+description: Wrong numbers, wrong grouping, crashes
+title: "[bug] "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: memhogs version
+      description: Shown on the releases page or in your APK file name
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: Pixel 7, Android 15
+    validations:
+      required: true
+  - type: dropdown
+    id: shizuku
+    attributes:
+      label: Shizuku state at the time
+      options:
+        - Running and access granted
+        - Running but access not granted
+        - Not running
+        - Not installed
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Screenshots help a lot for grouping and layout issues.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
