@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The memhogs pac: an amber wedge chomping toward three memory bits. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFB454"
+        android:pathData="M48,54 L69.6,41.5 A25,25 0 1,0 69.6,66.5 Z" />
+    <path
+        android:fillColor="#56C9DB"
+        android:pathData="M76,51 h6 v6 h-6 Z" />
+    <path
+        android:fillColor="#56C9DB"
+        android:pathData="M87,51 h5 v5 h-5 Z" />
+    <path
+        android:fillColor="#56C9DB"
+        android:pathData="M97,52 h4 v4 h-4 Z" />
+</vector>
