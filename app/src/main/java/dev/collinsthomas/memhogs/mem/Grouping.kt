@@ -31,8 +31,25 @@ data class AppGroup(
 fun groupByPackage(
     procs: List<MeminfoParser.ProcSample>,
     labelOf: (String) -> String?,
-): List<AppGroup> =
-    procs.groupBy { it.name.substringBefore(':') }
+): List<AppGroup> {
+    // Most helper processes are named "<package>:<suffix>", but apps can
+    // declare any process name, and Google Play services uses dot suffixes
+    // ("com.google.android.gms.persistent"). After stripping a colon suffix,
+    // fall back to the longest name prefix that is an installed package.
+    // The walk never accepts a dotless prefix: every real app package has a
+    // dot, and stopping there keeps native daemons ("android.hardware.*")
+    // from being absorbed into the framework package "android".
+    fun ownerOf(processName: String): String {
+        val base = processName.substringBefore(':')
+        if (labelOf(base) != null) return base
+        var candidate = base
+        while (candidate.contains('.')) {
+            candidate = candidate.substringBeforeLast('.')
+            if (candidate.contains('.') && labelOf(candidate) != null) return candidate
+        }
+        return base
+    }
+    return procs.groupBy { ownerOf(it.name) }
         .map { (pkg, samples) ->
             val label = labelOf(pkg)
             AppGroup(
@@ -46,6 +63,7 @@ fun groupByPackage(
             )
         }
         .sortedByDescending { it.pssKb }
+}
 
 /** Formats a KiB count in binary units with one decimal, like the CLI. */
 fun humanKb(kb: Long): String {

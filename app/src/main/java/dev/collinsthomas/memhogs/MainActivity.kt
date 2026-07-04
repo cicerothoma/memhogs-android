@@ -155,7 +155,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun toUi(parsed: MeminfoParser.Snapshot): UiSnapshot {
-        val groups = groupByPackage(parsed.processes) { pkg -> appLabel(pkg) }
+        // The owner-package walk probes several candidate names per process,
+        // so cache PackageManager answers for the duration of one snapshot.
+        val labelCache = mutableMapOf<String, String?>()
+        val groups = groupByPackage(parsed.processes) { pkg ->
+            labelCache.getOrPut(pkg) { appLabel(pkg) }
+        }
         val totalKb = parsed.totalRamKb
         return UiSnapshot(
             totalText = humanKb(totalKb),

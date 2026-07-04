@@ -6,6 +6,11 @@ with every helper process rolled up into the app that owns it. Chrome's
 sandboxed renderers count toward Chrome, not toward twelve rows of
 `sandboxed_process` noise.
 
+<p>
+  <img src="docs/screenshot-list.png" width="300" alt="memhogs showing apps ranked by memory" />
+  <img src="docs/screenshot-setup.png" width="300" alt="the grant screen shown while Shizuku access is pending" />
+</p>
+
 ## Why it needs Shizuku
 
 Android does not let a normal app see other apps' memory. That is why
