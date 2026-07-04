@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
@@ -40,6 +41,8 @@ class MainActivity : ComponentActivity() {
     private var gauge by mutableStateOf<Gauge?>(null)
     private var refreshing by mutableStateOf(false)
     private var error by mutableStateOf<String?>(null)
+    private var shizukuInstalled by mutableStateOf(false)
+    private var motion by mutableStateOf(true)
 
     private var shell: IShellService? = null
 
@@ -83,6 +86,8 @@ class MainActivity : ComponentActivity() {
                 gauge = gauge,
                 refreshing = refreshing,
                 error = error,
+                shizukuInstalled = shizukuInstalled,
+                motion = motion,
                 onRefresh = {
                     readGauge()
                     evaluateAccess()
@@ -90,6 +95,7 @@ class MainActivity : ComponentActivity() {
                 },
                 onRequestPermission = { Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST) },
                 onOpenShizuku = ::openShizuku,
+                onGetShizuku = ::getShizukuFromGitHub,
             )
         }
     }
@@ -98,6 +104,11 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         readGauge()
         evaluateAccess()
+        shizukuInstalled = isPackageInstalled(SHIZUKU_PACKAGE)
+        // Honor the system's "remove animations" accessibility setting.
+        motion = Settings.Global.getFloat(
+            contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f,
+        ) > 0f
     }
 
     override fun onDestroy() {
@@ -163,6 +174,8 @@ class MainActivity : ComponentActivity() {
         }
         val totalKb = parsed.totalRamKb
         return UiSnapshot(
+            totalKb = totalKb,
+            usedKb = parsed.usedRamKb,
             totalText = humanKb(totalKb),
             usedText = humanKb(parsed.usedRamKb),
             usedFrac = if (totalKb > 0) (parsed.usedRamKb.toFloat() / totalKb) else 0f,
@@ -196,7 +209,22 @@ class MainActivity : ComponentActivity() {
         if (launch != null) {
             startActivity(launch)
         } else {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+            getShizukuFromGitHub()
         }
+    }
+
+    // The Play Store listing sometimes reports Shizuku as incompatible with
+    // brand-new Android versions; the GitHub release installs fine.
+    private fun getShizukuFromGitHub() {
+        startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/RikkaApps/Shizuku/releases/latest"))
+        )
+    }
+
+    private fun isPackageInstalled(pkg: String): Boolean = try {
+        packageManager.getApplicationInfo(pkg, 0)
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
     }
 }

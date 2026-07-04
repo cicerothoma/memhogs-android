@@ -7,8 +7,9 @@ sandboxed renderers count toward Chrome, not toward twelve rows of
 `sandboxed_process` noise.
 
 <p>
-  <img src="docs/screenshot-list.png" width="300" alt="memhogs showing apps ranked by memory" />
-  <img src="docs/screenshot-setup.png" width="300" alt="the grant screen shown while Shizuku access is pending" />
+  <img src="docs/screenshot-list.png" width="270" alt="memhogs showing apps ranked by memory with proportional bars" />
+  <img src="docs/screenshot-expanded.png" width="270" alt="a group expanded into its member processes" />
+  <img src="docs/screenshot-setup.png" width="270" alt="the terminal-style setup screen shown before Shizuku is running" />
 </p>
 
 ## Why it needs Shizuku
@@ -19,7 +20,11 @@ memhogs reads per-app memory the same way a USB debugger would, through
 [Shizuku](https://shizuku.rikka.app/), which grants shell-level access
 without root:
 
-1. Install Shizuku from the Play Store or GitHub.
+1. Install Shizuku from the Play Store, or from its
+   [GitHub releases page](https://github.com/RikkaApps/Shizuku/releases/latest)
+   if the Play Store reports it as incompatible with your device. That
+   happens on very new Android versions before the listing catches up;
+   the APK itself installs and works fine.
 2. In Shizuku, start the service. On Android 11+ this takes one tap via
    wireless debugging; it survives until the next reboot.
 3. Open memhogs and grant it access when prompted.

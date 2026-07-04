@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 object Palette {
     val Background = Color(0xFF0B0E11)
     val Surface = Color(0xFF12161B)
+    val Cell = Color(0xFF1A212A)
     val Amber = Color(0xFFFFB454)
     val Cyan = Color(0xFF56C9DB)
     val Green = Color(0xFF7EC699)
@@ -16,6 +17,3 @@ object Palette {
     val Dim = Color(0xFF6B7280)
     val Text = Color(0xFFD7DEE8)
 }
-
-/** Fraction of RAM at which a group's share is flagged red, like the CLI. */
-const val HOT_SHARE = 0.15
