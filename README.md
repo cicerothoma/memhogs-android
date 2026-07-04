@@ -8,7 +8,7 @@ sandboxed renderers count toward Chrome, not toward twelve rows of
 
 <p>
   <img src="docs/screenshot-list.png" width="270" alt="memhogs showing apps ranked by memory with proportional bars" />
-  <img src="docs/screenshot-expanded.png" width="270" alt="a group expanded into its member processes" />
+  <img src="docs/screenshot-expanded.png" width="270" alt="an expanded app after reclaiming 120.7 MiB from Google" />
   <img src="docs/screenshot-setup.png" width="270" alt="the terminal-style setup screen shown before Shizuku is running" />
 </p>
 
@@ -44,6 +44,18 @@ uses to decide which app to kill under pressure.
   are system daemons that do not resolve to an installed package.
 - An app using 15% or more of RAM gets its share flagged in red.
 - Tap a row to expand its member processes with their PIDs.
+- The filter field narrows the list by name, and the live toggle
+  refreshes every five seconds, like the CLI's `--watch`.
+
+## Reclaiming memory
+
+Expanding an app offers a reclaim button. It runs `am kill` through the
+Shizuku shell, which kills the app's background processes only: the
+same reclaim Android itself performs under memory pressure, so nothing
+in the foreground and no active service is touched. memhogs re-measures
+afterward and reports exactly how much came back. Apps the system
+considers busy may return "nothing to reclaim right now", which is the
+safety working as intended. System daemons never offer the button.
 
 ## Install
 
