@@ -1,6 +1,7 @@
 package dev.collinsthomas.memhogs.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 
 /**
  * The CLI's terminal palette: amber for memory values, cyan for recognized
@@ -17,6 +18,8 @@ object Palette {
     val Dim = Color(0xFF6B7280)
     val Text = Color(0xFFD7DEE8)
 }
+
+val Mono = FontFamily.Monospace
 
 /** Per-group share of RAM at which a row is flagged red, like the CLI. */
 const val HOT_SHARE = 0.15
