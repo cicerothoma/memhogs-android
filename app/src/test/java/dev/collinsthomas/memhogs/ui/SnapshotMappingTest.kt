@@ -13,10 +13,10 @@ class SnapshotMappingTest {
         freeRamKb = 3_000_000,
         usedRamKb = 5_000_000,
         processes = listOf(
-            MeminfoParser.ProcSample("com.android.chrome", 8001, 1_200_000),
-            MeminfoParser.ProcSample("com.android.chrome:privileged_process0", 8100, 400_000),
-            MeminfoParser.ProcSample("system", 1780, 300_000),
-            MeminfoParser.ProcSample(OWN_PACKAGE, 9100, 50_000),
+            MeminfoParser.ProcessSample("com.android.chrome", 8001, 1_200_000),
+            MeminfoParser.ProcessSample("com.android.chrome:privileged_process0", 8100, 400_000),
+            MeminfoParser.ProcessSample("system", 1780, 300_000),
+            MeminfoParser.ProcessSample(OWN_PACKAGE, 9100, 50_000),
         ),
     )
 
@@ -25,13 +25,13 @@ class SnapshotMappingTest {
         OWN_PACKAGE to "memhogs",
     )
 
-    private val snapshot = parsed.toUiSnapshot(labelOf = { labels[it] }, ownPackage = OWN_PACKAGE)
+    private val snapshot = parsed.toUiSnapshot(appLabelOf = { labels[it] }, ownPackage = OWN_PACKAGE)
 
     @Test
     fun carriesDeviceTotals() {
         assertEquals("7.6 GiB", snapshot.totalText)
         assertEquals("4.8 GiB", snapshot.usedText)
-        assertEquals(0.625f, snapshot.usedFrac)
+        assertEquals(0.625f, snapshot.usedFraction)
         assertEquals(4, snapshot.processCount)
     }
 
@@ -40,8 +40,8 @@ class SnapshotMappingTest {
         val chrome = snapshot.groups.first()
         assertEquals("Chrome", chrome.label)
         assertEquals(1_600_000L, chrome.memKb)
-        assertEquals("1.5 GiB", chrome.mem)
-        assertEquals("20.0%", chrome.pctText)
+        assertEquals("1.5 GiB", chrome.memText)
+        assertEquals("20.0%", chrome.shareText)
         assertEquals(listOf(8001, 8100), chrome.members.map { it.pid })
     }
 
@@ -56,8 +56,8 @@ class SnapshotMappingTest {
     @Test
     fun zeroTotalRamYieldsZeroShares() {
         val empty = parsed.copy(totalRamKb = 0).toUiSnapshot({ labels[it] }, OWN_PACKAGE)
-        assertEquals(0f, empty.usedFrac)
-        assertTrue(empty.groups.all { it.pctFrac == 0.0 })
+        assertEquals(0f, empty.usedFraction)
+        assertTrue(empty.groups.all { it.shareOfRam == 0.0 })
     }
 
     private companion object {

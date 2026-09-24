@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 onRequestPermission = viewModel::requestPermission,
                 onOpenShizuku = ::openShizuku,
                 onGetShizuku = ::getShizukuFromGitHub,
-                onReclaim = viewModel::reclaim,
+                onReclaim = viewModel::reclaimBackgroundMemory,
             )
         }
     }
@@ -50,8 +50,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // The Play Store listing sometimes reports Shizuku as incompatible with
-    // brand-new Android versions; the GitHub release installs fine.
     private fun getShizukuFromGitHub() {
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_RELEASES_URL)))
     }

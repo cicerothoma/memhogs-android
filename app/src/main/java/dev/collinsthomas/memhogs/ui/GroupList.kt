@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,17 +56,8 @@ internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String
     var filter by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
 
-    val shown = remember(snapshot, filter) {
-        if (filter.isBlank()) {
-            snapshot.groups
-        } else {
-            snapshot.groups.filter {
-                it.label.contains(filter, ignoreCase = true) ||
-                    it.key.contains(filter, ignoreCase = true)
-            }
-        }
-    }
-    val topFrac = (snapshot.groups.firstOrNull()?.pctFrac ?: 1.0).coerceAtLeast(0.001)
+    val shown = remember(snapshot, filter) { snapshot.groups.matching(filter) }
+    val largestShare = (snapshot.groups.firstOrNull()?.shareOfRam ?: 1.0).coerceAtLeast(0.001)
 
     FilterPrompt(filter, onChange = { filter = it })
 
@@ -81,17 +73,15 @@ internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String
     }
 
     LazyColumn(Modifier.fillMaxSize(), state = rememberListStateKeptAtTop(shown)) {
-        items(shown, key = { it.key }) { g ->
+        items(shown, key = { it.key }) { group ->
             Box(Modifier.animateItem()) {
                 GroupRow(
-                    g = g,
-                    relFrac = (g.pctFrac / topFrac).toFloat(),
+                    group = group,
+                    barFraction = (group.shareOfRam / largestShare).toFloat(),
                     motion = motion,
-                    expanded = g.key in expanded,
-                    onToggle = {
-                        expanded = if (g.key in expanded) expanded - g.key else expanded + g.key
-                    },
-                    onReclaim = { onReclaim(g.key) },
+                    expanded = group.key in expanded,
+                    onToggle = { expanded = expanded.toggle(group.key) },
+                    onReclaim = { onReclaim(group.key) },
                 )
             }
         }
@@ -112,11 +102,20 @@ internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String
     }
 }
 
+private fun List<UiGroup>.matching(filter: String): List<UiGroup> = if (filter.isBlank()) {
+    this
+} else {
+    filter { it.label.contains(filter, ignoreCase = true) || it.key.contains(filter, ignoreCase = true) }
+}
+
+private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item else this + item
+
 @Composable
 private fun rememberListStateKeptAtTop(groups: List<UiGroup>): LazyListState {
     val state = rememberLazyListState()
-    remember(groups) {
+    DisposableEffect(groups) {
         if (state.firstVisibleItemIndex == 0) state.requestScrollToItem(0)
+        onDispose {}
     }
     return state
 }
@@ -172,20 +171,15 @@ private fun FilterPrompt(filter: String, onChange: (String) -> Unit) {
 
 @Composable
 private fun GroupRow(
-    g: UiGroup,
-    relFrac: Float,
+    group: UiGroup,
+    barFraction: Float,
     motion: Boolean,
     expanded: Boolean,
     onToggle: () -> Unit,
     onReclaim: () -> Unit,
 ) {
-    val expandable = g.members.size > 1 || g.canReclaim
-    val hot = g.pctFrac >= HOT_SHARE
-    val bar by animateFloatAsState(
-        targetValue = relFrac.coerceIn(0.02f, 1f),
-        animationSpec = tween(700),
-        label = "bar",
-    )
+    val expandable = group.members.size > 1 || group.canReclaim
+    val hot = group.shareOfRam >= HOT_GROUP_SHARE_OF_RAM
 
     Column(
         Modifier
@@ -194,44 +188,8 @@ private fun GroupRow(
             .padding(vertical = 4.dp),
     ) {
         Box(Modifier.fillMaxWidth()) {
-            // Proportional bar behind the row, scaled to the largest group.
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .padding(vertical = 2.dp),
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxWidth(bar)
-                        .fillMaxHeight()
-                        .background(
-                            (if (hot) Palette.Red else Palette.Amber).copy(alpha = 0.07f),
-                            RoundedCornerShape(6.dp),
-                        ),
-                )
-            }
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.width(92.dp), horizontalAlignment = Alignment.End) {
-                    Text(g.mem, fontFamily = Mono, fontSize = 15.sp, color = Palette.Amber)
-                    HotPct(g.pctText, hot, motion)
-                }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        g.label,
-                        fontSize = 15.sp,
-                        color = if (g.isApp) Palette.Cyan else Palette.Green,
-                    )
-                    if (expandable) {
-                        ExpandChip(expanded, g.members.size)
-                    }
-                }
-            }
+            ShareOfRamBar(barFraction, hot, Modifier.matchParentSize())
+            GroupSummary(group, hot, motion, expandable, expanded)
         }
         AnimatedVisibility(
             visible = expanded,
@@ -239,48 +197,101 @@ private fun GroupRow(
             exit = shrinkVertically(tween(200)),
         ) {
             Column(Modifier.padding(start = 14.dp, bottom = 8.dp)) {
-                g.members.forEachIndexed { i, m ->
-                    val glyph = if (i == g.members.lastIndex) "└─" else "├─"
-                    Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(glyph, fontFamily = Mono, fontSize = 12.sp, color = Palette.Dim)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            m.mem,
-                            fontFamily = Mono,
-                            fontSize = 12.sp,
-                            color = Palette.Amber,
-                            modifier = Modifier.width(78.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "${shortProcessName(m.name)} [${m.pid}]",
-                            fontFamily = Mono,
-                            fontSize = 12.sp,
-                            color = Palette.Dim,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (g.canReclaim) {
-                    Row(Modifier.padding(top = 12.dp)) {
-                        TermButton(stringResource(R.string.reclaim_button), onClick = onReclaim)
-                    }
-                    Text(
-                        stringResource(R.string.reclaim_explanation),
-                        fontFamily = Mono,
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        color = Palette.Dim,
-                        modifier = Modifier.padding(top = 8.dp, end = 12.dp),
-                    )
-                }
+                MemberTree(group.members)
+                if (group.canReclaim) ReclaimPanel(onReclaim)
             }
         }
     }
 }
 
-/** The tap target for expansion: an explicit chip, not a lone chevron. */
+@Composable
+private fun ShareOfRamBar(fraction: Float, hot: Boolean, modifier: Modifier) {
+    val width by animateFloatAsState(
+        targetValue = fraction.coerceIn(0.02f, 1f),
+        animationSpec = tween(700),
+        label = "bar",
+    )
+    Box(modifier.padding(vertical = 2.dp)) {
+        Box(
+            Modifier
+                .fillMaxWidth(width)
+                .fillMaxHeight()
+                .background(
+                    (if (hot) Palette.Red else Palette.Amber).copy(alpha = 0.07f),
+                    RoundedCornerShape(6.dp),
+                ),
+        )
+    }
+}
+
+@Composable
+private fun GroupSummary(group: UiGroup, hot: Boolean, motion: Boolean, expandable: Boolean, expanded: Boolean) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.width(92.dp), horizontalAlignment = Alignment.End) {
+            Text(group.memText, fontFamily = Mono, fontSize = 15.sp, color = Palette.Amber)
+            ShareOfRamText(group.shareText, hot, motion)
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                group.label,
+                fontSize = 15.sp,
+                color = if (group.isApp) Palette.Cyan else Palette.Green,
+            )
+            if (expandable) {
+                ExpandChip(expanded, group.members.size)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MemberTree(members: List<UiMember>) {
+    members.forEachIndexed { index, member ->
+        val branch = if (index == members.lastIndex) "└─" else "├─"
+        Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(branch, fontFamily = Mono, fontSize = 12.sp, color = Palette.Dim)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                member.memText,
+                fontFamily = Mono,
+                fontSize = 12.sp,
+                color = Palette.Amber,
+                modifier = Modifier.width(78.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "${nameWithinGroup(member.name)} [${member.pid}]",
+                fontFamily = Mono,
+                fontSize = 12.sp,
+                color = Palette.Dim,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReclaimPanel(onReclaim: () -> Unit) {
+    Row(Modifier.padding(top = 12.dp)) {
+        TermButton(stringResource(R.string.reclaim_button), onClick = onReclaim)
+    }
+    Text(
+        stringResource(R.string.reclaim_explanation),
+        fontFamily = Mono,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        color = Palette.Dim,
+        modifier = Modifier.padding(top = 8.dp, end = 12.dp),
+    )
+}
+
 @Composable
 private fun ExpandChip(expanded: Boolean, count: Int) {
     Row(
@@ -307,10 +318,10 @@ private fun ExpandChip(expanded: Boolean, count: Int) {
 }
 
 @Composable
-private fun HotPct(text: String, hot: Boolean, motion: Boolean) {
+private fun ShareOfRamText(text: String, hot: Boolean, motion: Boolean) {
     val alpha: Float = if (hot && motion) {
-        val t = rememberInfiniteTransition(label = "hot")
-        t.animateFloat(
+        val transition = rememberInfiniteTransition(label = "hot")
+        transition.animateFloat(
             initialValue = 1f,
             targetValue = 0.45f,
             animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
@@ -327,11 +338,5 @@ private fun HotPct(text: String, hot: Boolean, motion: Boolean) {
     )
 }
 
-/**
- * Shortens "com.android.chrome:sandboxed_process0:org.chromium..." to its
- * suffix, since the group header already names the package.
- */
-internal fun shortProcessName(name: String): String {
-    val suffix = name.substringAfter(':', missingDelimiterValue = "")
-    return if (suffix.isEmpty()) name else suffix
-}
+internal fun nameWithinGroup(processName: String): String =
+    processName.substringAfter(':', missingDelimiterValue = "").ifEmpty { processName }

@@ -34,10 +34,13 @@ services goes in the ViewModel or `shizuku/`.
 doing one thing. Match the idioms in the surrounding code. Formatting is
 ktlint's job (see `.editorconfig`).
 
-**Comments explain why.** Write a comment only for something the code
-cannot say: a platform quirk, a `dumpsys` format detail, a reason for an
-unusual choice. If a comment would only restate what the code does, rename
-or restructure the code instead.
+**The code is the documentation.** Wanting to write a comment is a sign the
+code needs refactoring. Give the idea a name instead: extract a function,
+name a constant, spell out an abbreviation, or write a test that shows the
+case. Reasons that span the whole design go in
+[ARCHITECTURE.md](ARCHITECTURE.md). Comments are only for facts code cannot
+express: Shizuku's reserved AIDL transaction code, why an R8 keep rule
+exists, and notes for translators in `strings.xml`.
 
 **Errors.** Handle every failure explicitly. Catch the narrowest type that
 works. Rethrow `CancellationException`. Show failures to the user through
@@ -60,7 +63,7 @@ system's "remove animations" setting.
 
 **Palette.** Colors carry meaning shared with the CLI: amber for memory,
 cyan for installed apps, green for system daemons, red for anything past
-`HOT_SHARE` or `HOT_BAR`. Use `Palette` tokens, never raw colors.
+`HOT_GROUP_SHARE_OF_RAM` or `HOT_DEVICE_USED_FRACTION`. Use `Palette` tokens, never raw colors.
 
 **Dependencies.** AndroidX, Kotlin, and Shizuku are the whole dependency
 list. Open an issue before adding a library. The app ships without the

@@ -69,12 +69,7 @@ class MemhogsViewModel(application: Application) :
         shizuku.requestPermission()
     }
 
-    /**
-     * Kills [packageName]'s background processes, the same reclaim the
-     * system performs under memory pressure, then re-measures and reports
-     * how much came back. Foreground apps and active services are untouched.
-     */
-    fun reclaim(packageName: String) {
+    fun reclaimBackgroundMemory(packageName: String) {
         val shell = shizuku.shell ?: return
         val group = state.value.snapshot?.groups?.find { it.key == packageName } ?: return
         pendingReclaim = PendingReclaim(packageName, group.label, group.memKb)
@@ -120,7 +115,7 @@ class MemhogsViewModel(application: Application) :
             return
         }
         val snapshot = withContext(Dispatchers.Default) {
-            parsed.toUiSnapshot(labelOf = ::appLabel, ownPackage = BuildConfig.APPLICATION_ID)
+            parsed.toUiSnapshot(appLabelOf = ::appLabel, ownPackage = BuildConfig.APPLICATION_ID)
         }
         mutableState.update { it.copy(snapshot = snapshot) }
         resolvePendingReclaim(snapshot)

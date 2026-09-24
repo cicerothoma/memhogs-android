@@ -1,63 +1,46 @@
 package dev.collinsthomas.memhogs.mem
 
-/**
- * Rolls processes up into the app that owns them, mirroring the CLI's
- * grouping. On Android the process tree is unhelpful (everything forks from
- * zygote), but process names carry the ownership instead: an app's extra
- * processes are named "<package>:<suffix>", so Chrome's renderers
- * ("com.android.chrome:sandboxed_process0...") group under Chrome the same
- * way Electron helpers group under their app on the desktop.
- */
+private const val HELPER_PROCESS_SEPARATOR = ':'
+private const val PACKAGE_SEGMENT_SEPARATOR = '.'
 
 data class Member(val processName: String, val pid: Int, val pssKb: Long)
 
 data class AppGroup(
-    /** Base package name, or the raw process name for native/system daemons. */
-    val packageName: String,
-    /** Human-readable label when the package resolves to an installed app. */
+    val owner: String,
     val label: String,
-    /** True when the package resolves to an installed app (cyan in the CLI). */
     val isApp: Boolean,
     val pssKb: Long,
     val members: List<Member>,
 )
 
-/**
- * Groups samples by base package name, summing PSS. [labelOf] resolves a
- * package to its app label, returning null for anything that is not an
- * installed app (system daemons, native services); those keep their raw
- * name, matching the CLI's standalone groups.
- */
-fun groupByPackage(procs: List<MeminfoParser.ProcSample>, labelOf: (String) -> String?): List<AppGroup> {
-    // Most helper processes are named "<package>:<suffix>", but apps can
-    // declare any process name, and Google Play services uses dot suffixes
-    // ("com.google.android.gms.persistent"). After stripping a colon suffix,
-    // fall back to the longest name prefix that is an installed package.
-    // The walk never accepts a dotless prefix: every real app package has a
-    // dot, and stopping there keeps native daemons ("android.hardware.*")
-    // from being absorbed into the framework package "android".
-    fun ownerOf(processName: String): String {
-        val base = processName.substringBefore(':')
-        if (labelOf(base) != null) return base
-        var candidate = base
-        while (candidate.contains('.')) {
-            candidate = candidate.substringBeforeLast('.')
-            if (candidate.contains('.') && labelOf(candidate) != null) return candidate
-        }
-        return base
-    }
-    return procs.groupBy { ownerOf(it.name) }
-        .map { (pkg, samples) ->
-            val label = labelOf(pkg)
-            AppGroup(
-                packageName = pkg,
-                label = label ?: pkg,
-                isApp = label != null,
-                pssKb = samples.sumOf { it.pssKb },
-                members = samples
-                    .sortedByDescending { it.pssKb }
-                    .map { Member(it.name, it.pid, it.pssKb) },
-            )
-        }
+fun groupByOwner(processes: List<MeminfoParser.ProcessSample>, appLabelOf: (String) -> String?): List<AppGroup> {
+    val isInstalledApp = { name: String -> appLabelOf(name) != null }
+    return processes
+        .groupBy { ownerOf(it.name, isInstalledApp) }
+        .map { (owner, samples) -> appGroupOf(owner, samples, appLabelOf(owner)) }
         .sortedByDescending { it.pssKb }
 }
+
+private fun ownerOf(processName: String, isInstalledApp: (String) -> Boolean): String {
+    val mainProcessName = processName.substringBefore(HELPER_PROCESS_SEPARATOR)
+    val candidates = sequenceOf(mainProcessName) + enclosingPackagesOf(mainProcessName)
+    return candidates.firstOrNull(isInstalledApp) ?: mainProcessName
+}
+
+private fun enclosingPackagesOf(name: String): Sequence<String> =
+    generateSequence(name.parentPackage()) { it.parentPackage() }
+        .takeWhile(::looksLikeAppPackage)
+
+private fun String.parentPackage(): String = substringBeforeLast(PACKAGE_SEGMENT_SEPARATOR, missingDelimiterValue = "")
+
+private fun looksLikeAppPackage(name: String): Boolean = PACKAGE_SEGMENT_SEPARATOR in name
+
+private fun appGroupOf(owner: String, samples: List<MeminfoParser.ProcessSample>, appLabel: String?) = AppGroup(
+    owner = owner,
+    label = appLabel ?: owner,
+    isApp = appLabel != null,
+    pssKb = samples.sumOf { it.pssKb },
+    members = samples
+        .sortedByDescending { it.pssKb }
+        .map { Member(it.name, it.pid, it.pssKb) },
+)

@@ -2,9 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Needed to resolve package names to app labels and icons for every
-         installed app. Distribution outside the Play Store is unaffected;
-         a Play submission will need a policy declaration for this. -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
@@ -24,7 +21,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Receives the Shizuku binder when the Shizuku service starts. -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
