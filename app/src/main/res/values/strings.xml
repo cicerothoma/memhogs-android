@@ -42,5 +42,7 @@
 
     <string name="error_line">error: %1$s</string>
     <string name="error_empty_meminfo">dumpsys returned no per-process data</string>
+    <string name="error_shell_did_not_start">shizuku did not start the shell</string>
+    <string name="error_shell_did_not_start_hint">shizuku is running, but the memhogs\nshell it launches never answered.\nsome systems, like hyperos 3, block\nit. restart shizuku, then retry.</string>
     <string name="error_retry">retry</string>
 </resources>

@@ -54,8 +54,14 @@ internal fun PermissionScreen(motion: Boolean, onRequestPermission: () -> Unit) 
 }
 
 @Composable
-internal fun ErrorScreen(error: String, motion: Boolean, onRetry: () -> Unit) {
-    val lines = listOf(TermLine(stringResource(R.string.error_line, error), Palette.Red, 150))
+internal fun ErrorScreen(error: String, hint: String?, motion: Boolean, onRetry: () -> Unit) {
+    val lines = buildList {
+        add(TermLine(stringResource(R.string.error_line, error), Palette.Red, 150))
+        if (hint != null) {
+            add(BlankLine)
+            addAll(termParagraph(hint, Palette.Text, pauseAfter = 150))
+        }
+    }
     TypedTerminal(lines, motion, Modifier.padding(top = 14.dp)) {
         TermButton(stringResource(R.string.error_retry), onClick = onRetry)
     }
