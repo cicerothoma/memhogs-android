@@ -1,0 +1,4 @@
+Reclaim several apps at once: long-press to select. New force stop
+for apps, behind a confirmation. Brazilian Portuguese translation.
+If Shizuku never starts the memhogs shell (seen on HyperOS 3), the
+app now shows an error with a retry instead of loading forever.
