@@ -90,4 +90,17 @@ class GroupingTest {
         assertEquals(3, groups.size)
         assertTrue(groups.none { it.isApp })
     }
+
+    @Test
+    fun isolatedProcessesGroupUnderTheirHostApp() {
+        val webViewSandbox = MeminfoParser.ProcessSample(
+            "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+            6496,
+            18_000,
+        )
+        val groups = groupByOwner(processes + webViewSandbox, mapOf(6496 to "com.whatsapp")) { labels[it] }
+        val whatsapp = groups.single { it.owner == "com.whatsapp" }
+        assertEquals(78_000L, whatsapp.pssKb)
+        assertTrue(groups.none { it.owner == "com.google.android.webview" })
+    }
 }

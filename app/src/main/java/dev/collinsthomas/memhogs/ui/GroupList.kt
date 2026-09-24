@@ -197,7 +197,7 @@ private fun GroupRow(
             exit = shrinkVertically(tween(200)),
         ) {
             Column(Modifier.padding(start = 14.dp, bottom = 8.dp)) {
-                MemberTree(group.members)
+                MemberTree(group.members, group.key)
                 if (group.canReclaim) ReclaimPanel(onReclaim)
             }
         }
@@ -251,7 +251,7 @@ private fun GroupSummary(group: UiGroup, hot: Boolean, motion: Boolean, expandab
 }
 
 @Composable
-private fun MemberTree(members: List<UiMember>) {
+private fun MemberTree(members: List<UiMember>, owner: String) {
     members.forEachIndexed { index, member ->
         val branch = if (index == members.lastIndex) "└─" else "├─"
         Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -266,7 +266,7 @@ private fun MemberTree(members: List<UiMember>) {
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                "${nameWithinGroup(member.name)} [${member.pid}]",
+                "${nameWithinGroup(member.name, owner)} [${member.pid}]",
                 fontFamily = Mono,
                 fontSize = 12.sp,
                 color = Palette.Dim,
@@ -338,5 +338,4 @@ private fun ShareOfRamText(text: String, hot: Boolean, motion: Boolean) {
     )
 }
 
-internal fun nameWithinGroup(processName: String): String =
-    processName.substringAfter(':', missingDelimiterValue = "").ifEmpty { processName }
+internal fun nameWithinGroup(processName: String, owner: String): String = processName.removePrefix("$owner:")

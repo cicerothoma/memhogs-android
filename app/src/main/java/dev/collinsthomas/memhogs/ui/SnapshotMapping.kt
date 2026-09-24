@@ -4,8 +4,12 @@ import dev.collinsthomas.memhogs.mem.AppGroup
 import dev.collinsthomas.memhogs.mem.MeminfoParser
 import dev.collinsthomas.memhogs.mem.groupByOwner
 
-fun MeminfoParser.Snapshot.toUiSnapshot(appLabelOf: (String) -> String?, ownPackage: String): UiSnapshot {
-    val groups = groupByOwner(processes, memoize(appLabelOf))
+fun MeminfoParser.Snapshot.toUiSnapshot(
+    appLabelOf: (String) -> String?,
+    ownPackage: String,
+    hostPackageOfPid: Map<Int, String> = emptyMap(),
+): UiSnapshot {
+    val groups = groupByOwner(processes, hostPackageOfPid, memoize(appLabelOf))
     return UiSnapshot(
         totalKb = totalRamKb,
         usedKb = usedRamKb,
