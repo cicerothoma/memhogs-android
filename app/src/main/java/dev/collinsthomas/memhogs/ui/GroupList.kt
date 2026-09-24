@@ -24,7 +24,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Surface
@@ -51,7 +53,7 @@ import dev.collinsthomas.memhogs.R
 @Composable
 internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String) -> Unit) {
     var filter by rememberSaveable { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(setOf<String>()) }
+    var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
 
     val shown = remember(snapshot, filter) {
         if (filter.isBlank()) {
@@ -78,7 +80,7 @@ internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String
         return
     }
 
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), state = rememberListStateKeptAtTop(shown)) {
         items(shown, key = { it.key }) { g ->
             Box(Modifier.animateItem()) {
                 GroupRow(
@@ -108,6 +110,15 @@ internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (String
             )
         }
     }
+}
+
+@Composable
+private fun rememberListStateKeptAtTop(groups: List<UiGroup>): LazyListState {
+    val state = rememberLazyListState()
+    remember(groups) {
+        if (state.firstVisibleItemIndex == 0) state.requestScrollToItem(0)
+    }
+    return state
 }
 
 @Composable
