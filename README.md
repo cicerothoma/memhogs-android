@@ -78,7 +78,7 @@ service to be running.
 ./gradlew test            # unit tests
 ```
 
-Needs JDK 17 or 21. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full
+Needs JDK 17 or newer. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full
 check CI runs and the code standards, and [ARCHITECTURE.md](ARCHITECTURE.md)
 for how the pieces fit.
 

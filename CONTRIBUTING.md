@@ -5,9 +5,8 @@ explains where code belongs and why the app works the way it does.
 
 ## Setup
 
-- JDK 17 or 21. Gradle 8.13 cannot run on JDK 25, which is what recent
-  Android Studio versions bundle. Point `JAVA_HOME` at a 17 or 21 install.
-- Android SDK 35.
+- JDK 17 or newer. The one bundled with Android Studio works.
+- Android SDK 37. Gradle installs it on first build once the SDK licenses are accepted.
 - To test the full app, use a device or emulator with
   [Shizuku](https://shizuku.rikka.app/) running. On an emulator you can
   start it with `adb shell <shizuku apk dir>/lib/arm64/libshizuku.so`.
