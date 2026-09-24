@@ -1,7 +1,6 @@
 package dev.collinsthomas.memhogs
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -9,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.core.net.toUri
 import dev.collinsthomas.memhogs.shizuku.SHIZUKU_PACKAGE
 import dev.collinsthomas.memhogs.ui.MemhogsApp
 
@@ -51,6 +51,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun getShizukuFromGitHub() {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_RELEASES_URL)))
+        startActivity(Intent(Intent.ACTION_VIEW, SHIZUKU_RELEASES_URL.toUri()))
     }
 }
