@@ -70,13 +70,14 @@ class MemhogsViewModel(application: Application) :
         shizuku.requestPermission()
     }
 
-    fun reclaimBackgroundMemory(packageName: String) {
+    fun reclaimBackgroundMemory(packageNames: Set<String>) {
         val shell = shizuku.shell ?: return
-        val group = state.value.snapshot?.groups?.find { it.key == packageName } ?: return
-        pendingReclaim = PendingReclaim(packageName, group.label, group.memKb)
+        val snapshot = state.value.snapshot ?: return
+        val pending = PendingReclaim.of(snapshot, packageNames) ?: return
+        pendingReclaim = pending
         viewModelScope.launch {
             reportingFailures {
-                withContext(Dispatchers.IO) { shell.killBackgroundProcesses(packageName) }
+                withContext(Dispatchers.IO) { pending.packageNames.forEach(shell::killBackgroundProcesses) }
                 delay(RECLAIM_SETTLE_MILLIS)
                 loadSnapshot()
             }
