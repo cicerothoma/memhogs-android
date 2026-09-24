@@ -37,6 +37,16 @@ import kotlinx.coroutines.delay
 /** One line of a typed terminal transcript. */
 data class TermLine(val text: String, val color: Color, val pauseAfter: Long = 140L)
 
+val BlankLine = TermLine("", Palette.Dim, 0)
+
+/** Splits a multi-line string resource into typed lines, pausing after the last. */
+fun termParagraph(text: String, color: Color, pauseAfter: Long, linePause: Long = 0): List<TermLine> {
+    val lines = text.lines()
+    return lines.mapIndexed { i, line ->
+        TermLine(line, color, if (i == lines.lastIndex) pauseAfter else linePause)
+    }
+}
+
 /**
  * Types [lines] out character by character with a blinking block cursor,
  * then reveals [after] (buttons, extra content). With motion off, the
@@ -91,7 +101,7 @@ private fun TermText(text: String, color: Color, cursor: Boolean = false) {
     Box {
         Text(
             text = if (cursor) "$text█" else text,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = Mono,
             fontSize = 14.sp,
             lineHeight = 21.sp,
             color = color,
@@ -107,7 +117,7 @@ private fun TermText(text: String, color: Color, cursor: Boolean = false) {
             )
             Text(
                 text = text + "█",
-                fontFamily = FontFamily.Monospace,
+                fontFamily = Mono,
                 fontSize = 14.sp,
                 lineHeight = 21.sp,
                 color = color,
@@ -129,7 +139,7 @@ fun TermButton(label: String, accent: Color = Palette.Amber, onClick: () -> Unit
     ) {
         Text(
             "[ $label ]",
-            fontFamily = FontFamily.Monospace,
+            fontFamily = Mono,
             fontSize = 14.sp,
             color = accent,
         )

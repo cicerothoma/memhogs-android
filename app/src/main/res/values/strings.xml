@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">memhogs</string>
+
+    <string name="header_used">%1$s of %2$s used</string>
+    <plurals name="header_used_with_processes">
+        <item quantity="one">%1$s of %2$s used · %3$d process</item>
+        <item quantity="other">%1$s of %2$s used · %3$d processes</item>
+    </plurals>
+    <string name="live">live</string>
+    <string name="refresh">Refresh</string>
+
+    <string name="filter_hint">filter by name</string>
+    <string name="filter_clear">Clear filter</string>
+    <string name="filter_no_match">no groups match \"%1$s\"</string>
+    <plurals name="list_footer">
+        <item quantity="one">%1$d of %2$d group · metric: PSS, shared pages charged fairly</item>
+        <item quantity="other">%1$d of %2$d groups · metric: PSS, shared pages charged fairly</item>
+    </plurals>
+    <plurals name="process_count">
+        <item quantity="one">%d process</item>
+        <item quantity="other">%d processes</item>
+    </plurals>
+
+    <string name="reclaim_button">reclaim memory</string>
+    <string name="reclaim_explanation">kills background processes only, the same reclaim android does under memory pressure. nothing you have open is touched.</string>
+    <string name="reclaim_freed">%1$s: reclaimed %2$s</string>
+    <string name="reclaim_nothing">%1$s: nothing to reclaim right now</string>
+
+    <!-- Terminal transcripts are typed out line by line; keep lines under 42 characters. -->
+    <string name="setup_error">error: shell access required</string>
+    <string name="setup_explanation">android hides other apps\' memory from\nnormal apps. shizuku unlocks it the way\na usb debugger would. no root needed.</string>
+    <string name="setup_steps">"  1. get shizuku\n  2. start its service (once per boot)\n  3. come back and grant access"</string>
+    <string name="setup_play_store_note">note: if the play store calls shizuku\nincompatible with your android version,\ninstall the apk from its github releases.</string>
+    <string name="setup_open_shizuku">open shizuku</string>
+    <string name="setup_get_shizuku">get shizuku · github</string>
+    <string name="setup_check_again">check again</string>
+
+    <string name="permission_status">running · memhogs not authorized</string>
+    <string name="permission_explanation">one tap left. grant access and every\napp on this phone lines up by memory.</string>
+    <string name="permission_grant">grant access</string>
+
+    <string name="error_line">error: %1$s</string>
+    <string name="error_empty_meminfo">dumpsys returned no per-process data</string>
+    <string name="error_retry">retry</string>
 </resources>

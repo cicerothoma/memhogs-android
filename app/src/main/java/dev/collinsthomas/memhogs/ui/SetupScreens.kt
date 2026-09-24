@@ -65,85 +65,52 @@ import kotlinx.coroutines.delay
 import kotlin.math.ceil
 
 @Composable
-fun MemhogsApp(
-    state: MemhogsUiState,
-    onRefresh: () -> Unit,
-    onRequestPermission: () -> Unit,
+internal fun SetupScreen(
+    shizukuInstalled: Boolean,
+    motion: Boolean,
     onOpenShizuku: () -> Unit,
     onGetShizuku: () -> Unit,
-    onReclaim: (String) -> Unit,
+    onRetry: () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            background = Palette.Background,
-            surface = Palette.Surface,
-            primary = Palette.Amber,
-            onPrimary = Palette.Background,
-            onBackground = Palette.Text,
-            onSurface = Palette.Text,
-        )
-    ) {
-        Surface(Modifier.fillMaxSize(), color = Palette.Background) {
-            val access = state.access
-            val motion = state.motion
-            var live by rememberSaveable { mutableStateOf(false) }
-            LaunchedEffect(live, access) {
-                while (live && access == ShizukuAccess.READY) {
-                    onRefresh()
-                    delay(5000)
-                }
-            }
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .systemBarsPadding()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Header(
-                    snapshot = state.snapshot,
-                    gauge = state.gauge,
-                    refreshing = state.refreshing,
-                    live = live && access == ShizukuAccess.READY,
-                    showLive = access == ShizukuAccess.READY,
-                    motion = motion,
-                    onRefresh = onRefresh,
-                    onToggleLive = { live = !live },
-                )
-                AnimatedVisibility(visible = state.reclaimResult != null) {
-                    Text(
-                        state.reclaimResult?.message() ?: "",
-                        fontFamily = Mono,
-                        fontSize = 12.sp,
-                        color = Palette.Green,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                }
-                when (access) {
-                    ShizukuAccess.NOT_RUNNING -> SetupScreen(
-                        state.shizukuInstalled, motion, onOpenShizuku, onGetShizuku, onRefresh,
-                    )
-                    ShizukuAccess.NEEDS_PERMISSION -> PermissionScreen(motion, onRequestPermission)
-                    ShizukuAccess.READY -> when {
-                        state.error != null -> ErrorScreen(state.error.message(), motion, onRefresh)
-                        state.snapshot == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            EatingLoader(motion)
-                        }
-                        else -> GroupList(state.snapshot, motion, onReclaim)
-                    }
-                }
-            }
+    val lines = buildList {
+        add(TermLine("$ memhogs", Palette.Green))
+        add(TermLine(stringResource(R.string.setup_error), Palette.Red, 260))
+        add(BlankLine)
+        addAll(termParagraph(stringResource(R.string.setup_explanation), Palette.Text, pauseAfter = 200))
+        add(BlankLine)
+        addAll(termParagraph(stringResource(R.string.setup_steps), Palette.Text, pauseAfter = 200, linePause = 60))
+        if (!shizukuInstalled) {
+            add(BlankLine)
+            addAll(termParagraph(stringResource(R.string.setup_play_store_note), Palette.Dim, pauseAfter = 120))
         }
+    }
+    TypedTerminal(lines, motion, Modifier.padding(top = 14.dp)) {
+        if (shizukuInstalled) {
+            TermButton(stringResource(R.string.setup_open_shizuku), onClick = onOpenShizuku)
+        } else {
+            TermButton(stringResource(R.string.setup_get_shizuku), onClick = onGetShizuku)
+        }
+        TermButton(stringResource(R.string.setup_check_again), accent = Palette.Dim, onClick = onRetry)
     }
 }
 
 @Composable
-private fun ReclaimResult.message(): String = when (this) {
-    is ReclaimResult.Reclaimed -> stringResource(R.string.reclaim_freed, label, humanKb(freedKb))
-    is ReclaimResult.NothingToReclaim -> stringResource(R.string.reclaim_nothing, label)
+internal fun PermissionScreen(motion: Boolean, onRequestPermission: () -> Unit) {
+    val lines = buildList {
+        add(TermLine("$ shizuku status", Palette.Green))
+        add(TermLine(stringResource(R.string.permission_status), Palette.Amber, 200))
+        add(BlankLine)
+        addAll(termParagraph(stringResource(R.string.permission_explanation), Palette.Text, pauseAfter = 150))
+    }
+    TypedTerminal(lines, motion, Modifier.padding(top = 14.dp)) {
+        TermButton(stringResource(R.string.permission_grant), onClick = onRequestPermission)
+    }
 }
 
 @Composable
-private fun LoadError.message(): String = when (this) {
-    LoadError.EmptyMeminfo -> stringResource(R.string.error_empty_meminfo)
-    is LoadError.Failed -> detail
+internal fun ErrorScreen(error: String, motion: Boolean, onRetry: () -> Unit) {
+    val lines = listOf(TermLine(stringResource(R.string.error_line, error), Palette.Red, 150))
+    TypedTerminal(lines, motion, Modifier.padding(top = 14.dp)) {
+        TermButton(stringResource(R.string.error_retry), onClick = onRetry)
+    }
 }
