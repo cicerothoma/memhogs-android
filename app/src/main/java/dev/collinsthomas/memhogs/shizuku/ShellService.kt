@@ -18,12 +18,20 @@ class ShellService : IShellService.Stub() {
         destroy()
     }
 
-    override fun run(command: String): String {
-        val proc = ProcessBuilder("sh", "-c", command)
+    override fun meminfo(): String = execute("dumpsys", "meminfo")
+
+    override fun killBackgroundProcesses(packageName: String) {
+        require(isValidPackageName(packageName)) { "not a package name: $packageName" }
+        execute("am", "kill", packageName)
+    }
+
+    private fun execute(vararg command: String): String {
+        val process = ProcessBuilder(*command)
             .redirectErrorStream(true)
             .start()
-        val output = proc.inputStream.bufferedReader().readText()
-        proc.waitFor()
+        val output = process.inputStream.bufferedReader().readText()
+        val exitCode = process.waitFor()
+        check(exitCode == 0) { "${command.joinToString(" ")} exited with $exitCode: $output" }
         return output
     }
 }

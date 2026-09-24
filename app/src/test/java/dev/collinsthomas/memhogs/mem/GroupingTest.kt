@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 class GroupingTest {
 
@@ -95,5 +96,16 @@ class GroupingTest {
         assertEquals("117.0 MiB", humanKb(117L * 1024))
         assertEquals("7.1 GiB", humanKb(7278L * 1024))
         assertEquals("439.9 MiB", humanKb(450_500))
+    }
+
+    @Test
+    fun humanKbIgnoresTheDeviceLocale() {
+        val original = Locale.getDefault()
+        Locale.setDefault(Locale.GERMANY)
+        try {
+            assertEquals("439.9 MiB", humanKb(450_500))
+        } finally {
+            Locale.setDefault(original)
+        }
     }
 }

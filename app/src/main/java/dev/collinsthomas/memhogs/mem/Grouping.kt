@@ -1,5 +1,7 @@
 package dev.collinsthomas.memhogs.mem
 
+import java.util.Locale
+
 /**
  * Rolls processes up into the app that owns them, mirroring the CLI's
  * grouping. On Android the process tree is unhelpful (everything forks from
@@ -77,5 +79,5 @@ fun humanKb(kb: Long): String {
         exp++
         n /= 1024
     }
-    return String.format("%.1f %ciB", b.toDouble() / div, "KMGTPE"[exp])
+    return String.format(Locale.US, "%.1f %ciB", b.toDouble() / div, "KMGTPE"[exp])
 }
