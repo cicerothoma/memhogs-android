@@ -28,22 +28,22 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * The memhogs pac: an amber wedge. When [chomping], the mouth opens and
- * closes; otherwise it holds a mid-bite pose, same as the site logo.
- */
+private const val MOUTH_NEARLY_CLOSED_DEGREES = 8f
+private const val MOUTH_WIDE_OPEN_DEGREES = 72f
+private const val MOUTH_MID_BITE_DEGREES = 44f
+
 @Composable
 fun Pac(size: Dp, chomping: Boolean, modifier: Modifier = Modifier) {
     val mouth: Float = if (chomping) {
-        val t = rememberInfiniteTransition(label = "pac")
-        t.animateFloat(
-            initialValue = 8f,
-            targetValue = 72f,
+        val transition = rememberInfiniteTransition(label = "pac")
+        transition.animateFloat(
+            initialValue = MOUTH_NEARLY_CLOSED_DEGREES,
+            targetValue = MOUTH_WIDE_OPEN_DEGREES,
             animationSpec = infiniteRepeatable(tween(180, easing = LinearEasing), RepeatMode.Reverse),
             label = "mouth",
         ).value
     } else {
-        44f
+        MOUTH_MID_BITE_DEGREES
     }
     Canvas(modifier.size(size)) {
         drawArc(
@@ -55,15 +55,11 @@ fun Pac(size: Dp, chomping: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * Three cyan memory bits queued in front of the pac. While [active] they
- * ride a conveyor into its mouth.
- */
 @Composable
-fun Bits(active: Boolean, motion: Boolean, modifier: Modifier = Modifier) {
+fun MemoryBits(active: Boolean, motion: Boolean, modifier: Modifier = Modifier) {
     val shift: Float = if (active && motion) {
-        val t = rememberInfiniteTransition(label = "bits")
-        t.animateFloat(
+        val transition = rememberInfiniteTransition(label = "bits")
+        transition.animateFloat(
             initialValue = 0f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(tween(420, easing = LinearEasing)),
@@ -74,59 +70,54 @@ fun Bits(active: Boolean, motion: Boolean, modifier: Modifier = Modifier) {
     }
     val step = 9.dp
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        repeat(3) { i ->
+        repeat(3) { bit ->
             Box(
                 Modifier
                     .graphicsLayer {
                         translationX = -shift * step.toPx()
-                        alpha = if (i == 0) 1f - shift else 1f
+                        alpha = if (bit == 0) 1f - shift else 1f
                     }
                     .size(5.dp)
-                    .background(Palette.Cyan.copy(alpha = if (i == 2) 0.6f else 1f)),
+                    .background(Palette.Cyan.copy(alpha = if (bit == 2) 0.6f else 1f)),
             )
-            if (i < 2) Spacer(Modifier.width(step - 5.dp))
+            if (bit < 2) Spacer(Modifier.width(step - 5.dp))
         }
     }
 }
 
-/** Loading state: the pac eats an endless queue of bits. */
 @Composable
 fun EatingLoader(motion: Boolean, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Pac(size = 18.dp, chomping = motion)
         Spacer(Modifier.width(10.dp))
-        Bits(active = true, motion = motion)
+        MemoryBits(active = true, motion = motion)
     }
 }
 
-/**
- * The RAM gauge as a row of memory cells that fill left to right, amber
- * until [hotAt], red past it.
- */
 @Composable
-fun BitBar(frac: Float, modifier: Modifier = Modifier, hotAt: Float = HOT_BAR) {
+fun RamGauge(usedFraction: Float, modifier: Modifier = Modifier, hotAt: Float = HOT_DEVICE_USED_FRACTION) {
     val fill by animateFloatAsState(
-        targetValue = frac.coerceIn(0f, 1f),
+        targetValue = usedFraction.coerceIn(0f, 1f),
         animationSpec = tween(900, easing = FastOutSlowInEasing),
         label = "fill",
     )
-    val hot = frac >= hotAt
+    val hot = usedFraction >= hotAt
     Canvas(modifier.fillMaxWidth().height(14.dp)) {
         val gap = 3.dp.toPx()
-        val cellW = 7.dp.toPx()
-        val n = ((size.width + gap) / (cellW + gap)).toInt().coerceAtLeast(1)
-        val filled = fill * n
-        val on = if (hot) Palette.Red else Palette.Amber
-        for (i in 0 until n) {
+        val cellWidth = 7.dp.toPx()
+        val cellCount = ((size.width + gap) / (cellWidth + gap)).toInt().coerceAtLeast(1)
+        val filledCells = fill * cellCount
+        val fillColor = if (hot) Palette.Red else Palette.Amber
+        for (cell in 0 until cellCount) {
             val color = when {
-                i + 1 <= filled -> on
-                i < filled -> on.copy(alpha = (filled - i).coerceIn(0.15f, 1f))
+                cell + 1 <= filledCells -> fillColor
+                cell < filledCells -> fillColor.copy(alpha = (filledCells - cell).coerceIn(0.15f, 1f))
                 else -> Palette.Cell
             }
             drawRoundRect(
                 color = color,
-                topLeft = Offset(i * (cellW + gap), 0f),
-                size = Size(cellW, size.height),
+                topLeft = Offset(cell * (cellWidth + gap), 0f),
+                size = Size(cellWidth, size.height),
                 cornerRadius = CornerRadius(2.dp.toPx()),
             )
         }

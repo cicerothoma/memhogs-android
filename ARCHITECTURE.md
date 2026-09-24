@@ -11,8 +11,8 @@ Shizuku server (shell UID)
   └─ ShellService.meminfo()            shizuku/   runs `dumpsys meminfo`
        │  raw text over binder
        ▼
-MeminfoParser.parse()                   mem/       text → Snapshot of ProcSample
-groupByPackage()                        mem/       ProcSample → AppGroup
+MeminfoParser.parse()                   mem/       text → Snapshot of ProcessSample
+groupByOwner()                          mem/       ProcessSample → AppGroup
        │
        ▼
 toUiSnapshot()                          ui/        AppGroup → display-ready UiSnapshot
@@ -22,7 +22,7 @@ MemhogsViewModel                        root       owns MemhogsUiState (StateFlo
 MemhogsApp and its composables          ui/        stateless; render state, emit events
 ```
 
-Reclaim runs the other way: `MemhogsViewModel.reclaim()` →
+Reclaim runs the other way: `MemhogsViewModel.reclaimBackgroundMemory()` →
 `ShellService.killBackgroundProcesses()` → `am kill`. The ViewModel then
 measures again and turns the before/after difference into a `ReclaimResult`
 through `PendingReclaim`.
@@ -49,7 +49,7 @@ memhogs CLI and Android's own low-memory killer.
 **Grouping by process name, not process tree.** Every Android app forks from
 zygote, so the tree carries no ownership. An app's extra processes are
 named `<package>:<suffix>`, or sometimes `<package>.<suffix>` (Play
-services). `groupByPackage` strips the colon suffix, then walks dotted
+services). `groupByOwner` strips the colon suffix, then walks dotted
 prefixes looking for an installed package. It never accepts a prefix
 without a dot, which keeps `android.hardware.*` daemons out of the
 `android` framework package.
@@ -70,8 +70,11 @@ running services. The app never offers it for system daemons or for itself.
 and reclaim outcomes are typed (`LoadError`, `ReclaimResult`). The UI picks
 the wording from `strings.xml`.
 
-**No network.** The manifest declares no `INTERNET` permission. Memory data
-never leaves the device.
+**Permissions.** The app needs `QUERY_ALL_PACKAGES` to turn every package
+name into an app label, and lint's warning about it is suppressed on
+purpose. A Play Store submission will need a policy declaration for it.
+Shizuku delivers its binder through `ShizukuProvider` in the manifest.
+There is no `INTERNET` permission, so memory data never leaves the device.
 
 ## Release and distribution
 

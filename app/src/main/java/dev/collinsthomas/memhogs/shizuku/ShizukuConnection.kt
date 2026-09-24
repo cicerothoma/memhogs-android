@@ -14,11 +14,6 @@ const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 private const val PERMISSION_REQUEST_CODE = 1
 private const val TAG = "ShizukuConnection"
 
-/**
- * Tracks whether Shizuku is running and authorized, and binds [ShellService]
- * once it is. Shizuku's listeners are process-wide, so one instance should
- * live as long as the screen that needs the shell.
- */
 class ShizukuConnection(private val listener: Listener) {
 
     interface Listener {

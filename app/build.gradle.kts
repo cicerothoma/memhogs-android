@@ -7,13 +7,11 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint")
 }
 
-// Release signing lives in keystore.properties (gitignored); the keystore
-// itself lives outside the repo. Without the file, release builds are
-// simply unsigned, so CI and other machines can still compile.
-val keystoreProps = Properties().apply {
-    val f = rootProject.file("keystore.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
+fun optionalProperties(file: File) = Properties().apply {
+    if (file.exists()) file.inputStream().use { load(it) }
 }
+
+val releaseSigning = optionalProperties(rootProject.file("keystore.properties"))
 
 android {
     namespace = "dev.collinsthomas.memhogs"
@@ -42,12 +40,12 @@ android {
     }
 
     signingConfigs {
-        if (keystoreProps.isNotEmpty()) {
+        if (releaseSigning.isNotEmpty()) {
             create("release") {
-                storeFile = file(keystoreProps.getProperty("storeFile"))
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
+                storeFile = file(releaseSigning.getProperty("storeFile"))
+                storePassword = releaseSigning.getProperty("storePassword")
+                keyAlias = releaseSigning.getProperty("keyAlias")
+                keyPassword = releaseSigning.getProperty("keyPassword")
             }
         }
     }
@@ -60,7 +58,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            if (keystoreProps.isNotEmpty()) {
+            if (releaseSigning.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
@@ -79,7 +77,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // Shell-level access for dumpsys, granted by the user through the Shizuku app.
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
 

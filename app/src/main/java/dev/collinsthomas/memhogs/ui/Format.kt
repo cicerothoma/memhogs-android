@@ -2,19 +2,19 @@ package dev.collinsthomas.memhogs.ui
 
 import java.util.Locale
 
-/** Formats a KiB count in binary units with one decimal, like the CLI. */
-fun humanKb(kb: Long): String {
-    val b = kb * 1024
-    if (b < 1024) return "$b B"
-    var div = 1024L
-    var exp = 0
-    var n = b / 1024
-    while (n >= 1024) {
-        div *= 1024
-        exp++
-        n /= 1024
+private const val BYTES_PER_KIB = 1024L
+private const val BINARY_UNIT_PREFIXES = "KMGTPE"
+
+fun humanReadableKb(kb: Long): String {
+    val bytes = kb * BYTES_PER_KIB
+    if (bytes < BYTES_PER_KIB) return "$bytes B"
+    var unitBytes = BYTES_PER_KIB
+    var unitIndex = 0
+    while (bytes / unitBytes >= BYTES_PER_KIB) {
+        unitBytes *= BYTES_PER_KIB
+        unitIndex++
     }
-    return String.format(Locale.US, "%.1f %ciB", b.toDouble() / div, "KMGTPE"[exp])
+    return String.format(Locale.US, "%.1f %ciB", bytes.toDouble() / unitBytes, BINARY_UNIT_PREFIXES[unitIndex])
 }
 
 fun percent(fraction: Double): String = String.format(Locale.US, "%.1f%%", fraction * 100)

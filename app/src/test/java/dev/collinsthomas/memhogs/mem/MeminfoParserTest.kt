@@ -5,10 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// Shaped like real `dumpsys meminfo` output on Android 8+. The OOM
-// adjustment section deliberately repeats the "NK: name (pid N)" format to
-// prove the parser respects section boundaries.
-private val FIXTURE = """
+private val MEMINFO_WITH_OOM_SECTION = """
 Applications Memory Usage (in Kilobytes):
 Uptime: 86054838 Realtime: 172805286
 
@@ -45,7 +42,7 @@ class MeminfoParserTest {
 
     @Test
     fun parsesOnlyTheProcessSection() {
-        val snap = MeminfoParser.parse(FIXTURE)
+        val snap = MeminfoParser.parse(MEMINFO_WITH_OOM_SECTION)
         assertEquals(7, snap.processes.size)
         assertFalse(
             "OOM adjustment lines must not leak into the process list",
@@ -55,7 +52,7 @@ class MeminfoParserTest {
 
     @Test
     fun sortsByPssDescending() {
-        val snap = MeminfoParser.parse(FIXTURE)
+        val snap = MeminfoParser.parse(MEMINFO_WITH_OOM_SECTION)
         assertEquals("com.google.android.gms.persistent", snap.processes.first().name)
         assertEquals(354_123L, snap.processes.first().pssKb)
         assertTrue(snap.processes.zipWithNext().all { (a, b) -> a.pssKb >= b.pssKb })
@@ -63,20 +60,24 @@ class MeminfoParserTest {
 
     @Test
     fun keepsFullProcessNamesAndPids() {
-        val snap = MeminfoParser.parse(FIXTURE)
+        val snap = MeminfoParser.parse(MEMINFO_WITH_OOM_SECTION)
         val renderer = snap.processes.single { it.pid == 8123 }
         assertEquals(
             "com.android.chrome:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
             renderer.name,
         )
         assertEquals(120_000L, renderer.pssKb)
-        // "(pid 8001 / activities)" still parses to pid 8001.
+    }
+
+    @Test
+    fun parsesPidFollowedByProcessState() {
+        val snap = MeminfoParser.parse(MEMINFO_WITH_OOM_SECTION)
         assertTrue(snap.processes.any { it.pid == 8001 && it.name == "com.android.chrome" })
     }
 
     @Test
     fun parsesRamTotals() {
-        val snap = MeminfoParser.parse(FIXTURE)
+        val snap = MeminfoParser.parse(MEMINFO_WITH_OOM_SECTION)
         assertEquals(7_876_544L, snap.totalRamKb)
         assertEquals(3_456_789L, snap.freeRamKb)
         assertEquals(3_987_654L, snap.usedRamKb)

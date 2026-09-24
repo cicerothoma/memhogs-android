@@ -2,22 +2,26 @@ package dev.collinsthomas.memhogs.ui
 
 import dev.collinsthomas.memhogs.mem.AppGroup
 import dev.collinsthomas.memhogs.mem.MeminfoParser
-import dev.collinsthomas.memhogs.mem.groupByPackage
+import dev.collinsthomas.memhogs.mem.groupByOwner
 
-fun MeminfoParser.Snapshot.toUiSnapshot(labelOf: (String) -> String?, ownPackage: String): UiSnapshot {
-    // The owner-package walk probes several candidate names per process,
-    // so cache the answers for the duration of one snapshot.
-    val labelCache = mutableMapOf<String, String?>()
-    val groups = groupByPackage(processes) { pkg -> labelCache.getOrPut(pkg) { labelOf(pkg) } }
+fun MeminfoParser.Snapshot.toUiSnapshot(appLabelOf: (String) -> String?, ownPackage: String): UiSnapshot {
+    val groups = groupByOwner(processes, memoize(appLabelOf))
     return UiSnapshot(
         totalKb = totalRamKb,
         usedKb = usedRamKb,
-        totalText = humanKb(totalRamKb),
-        usedText = humanKb(usedRamKb),
-        usedFrac = fractionOf(usedRamKb, totalRamKb).toFloat(),
+        totalText = humanReadableKb(totalRamKb),
+        usedText = humanReadableKb(usedRamKb),
+        usedFraction = fractionOf(usedRamKb, totalRamKb).toFloat(),
         processCount = processes.size,
         groups = groups.map { it.toUiGroup(totalRamKb, ownPackage) },
     )
+}
+
+private fun <K, V> memoize(compute: (K) -> V): (K) -> V {
+    val cache = mutableMapOf<K, V>()
+    return { key ->
+        if (key in cache) cache.getValue(key) else compute(key).also { cache[key] = it }
+    }
 }
 
 private fun fractionOf(kb: Long, totalKb: Long): Double = if (totalKb > 0) kb.toDouble() / totalKb else 0.0
@@ -25,14 +29,14 @@ private fun fractionOf(kb: Long, totalKb: Long): Double = if (totalKb > 0) kb.to
 private fun AppGroup.toUiGroup(totalRamKb: Long, ownPackage: String): UiGroup {
     val share = fractionOf(pssKb, totalRamKb)
     return UiGroup(
-        key = packageName,
+        key = owner,
         label = label,
         isApp = isApp,
-        mem = humanKb(pssKb),
+        memText = humanReadableKb(pssKb),
         memKb = pssKb,
-        pctFrac = share,
-        pctText = percent(share),
-        canReclaim = isApp && packageName != ownPackage,
-        members = members.map { UiMember(name = it.processName, pid = it.pid, mem = humanKb(it.pssKb)) },
+        shareOfRam = share,
+        shareText = percent(share),
+        canReclaim = isApp && owner != ownPackage,
+        members = members.map { UiMember(name = it.processName, pid = it.pid, memText = humanReadableKb(it.pssKb)) },
     )
 }

@@ -20,7 +20,7 @@ data class UiSnapshot(
     val usedKb: Long,
     val totalText: String,
     val usedText: String,
-    val usedFrac: Float,
+    val usedFraction: Float,
     val processCount: Int,
     val groups: List<UiGroup>,
 )
@@ -29,16 +29,15 @@ data class UiGroup(
     val key: String,
     val label: String,
     val isApp: Boolean,
-    val mem: String,
+    val memText: String,
     val memKb: Long,
-    val pctFrac: Double,
-    val pctText: String,
-    /** True when `am kill` can safely reclaim this group's background memory. */
+    val shareOfRam: Double,
+    val shareText: String,
     val canReclaim: Boolean,
     val members: List<UiMember>,
 )
 
-data class UiMember(val name: String, val pid: Int, val mem: String)
+data class UiMember(val name: String, val pid: Int, val memText: String)
 
 sealed interface LoadError {
     data object EmptyMeminfo : LoadError

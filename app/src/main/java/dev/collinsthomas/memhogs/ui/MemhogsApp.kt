@@ -104,7 +104,7 @@ fun MemhogsApp(
 
 @Composable
 private fun ReclaimResult.message(): String = when (this) {
-    is ReclaimResult.Reclaimed -> stringResource(R.string.reclaim_freed, label, humanKb(freedKb))
+    is ReclaimResult.Reclaimed -> stringResource(R.string.reclaim_freed, label, humanReadableKb(freedKb))
     is ReclaimResult.NothingToReclaim -> stringResource(R.string.reclaim_nothing, label)
 }
 

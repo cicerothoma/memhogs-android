@@ -1,6 +1,7 @@
 package dev.collinsthomas.memhogs.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -58,7 +59,7 @@ internal fun Header(
     ) {
         Pac(size = 20.dp, chomping = motion && (refreshing || live))
         Spacer(Modifier.width(8.dp))
-        Bits(active = refreshing || live, motion = motion)
+        MemoryBits(active = refreshing || live, motion = motion)
         Spacer(Modifier.width(10.dp))
         Text(
             stringResource(R.string.app_name),
@@ -75,30 +76,37 @@ internal fun Header(
         RefreshGlyph(refreshing, motion, onRefresh)
     }
 
-    val (frac, line) = when {
+    val (usedFraction, line) = when {
         snapshot != null -> {
             val used by animateFloatAsState(
                 targetValue = snapshot.usedKb.toFloat(),
                 animationSpec = tween(900),
                 label = "used",
             )
-            snapshot.usedFrac to pluralStringResource(
+            snapshot.usedFraction to pluralStringResource(
                 R.plurals.header_used_with_processes,
                 snapshot.processCount,
-                humanKb(used.toLong()),
+                humanReadableKb(used.toLong()),
                 snapshot.totalText,
                 snapshot.processCount,
             )
         }
         gauge != null -> {
             val used = gauge.totalBytes - gauge.availBytes
-            val f = if (gauge.totalBytes > 0) used.toFloat() / gauge.totalBytes else 0f
-            f to stringResource(R.string.header_used, humanKb(used / 1024), humanKb(gauge.totalBytes / 1024))
+            val fraction = if (gauge.totalBytes > 0) used.toFloat() / gauge.totalBytes else 0f
+            fraction to
+                stringResource(
+                    R.string.header_used,
+                    humanReadableKb(used / 1024),
+                    humanReadableKb(
+                        gauge.totalBytes / 1024,
+                    ),
+                )
         }
         else -> 0f to ""
     }
     if (line.isNotEmpty()) {
-        BitBar(frac = frac)
+        RamGauge(usedFraction = usedFraction)
         Text(
             line,
             fontFamily = Mono,
@@ -119,8 +127,8 @@ private fun LiveChip(live: Boolean, motion: Boolean, onToggle: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val alpha: Float = if (live && motion) {
-            val t = rememberInfiniteTransition(label = "live")
-            t.animateFloat(
+            val transition = rememberInfiniteTransition(label = "live")
+            transition.animateFloat(
                 initialValue = 1f,
                 targetValue = 0.25f,
                 animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
@@ -144,18 +152,9 @@ private fun LiveChip(live: Boolean, motion: Boolean, onToggle: () -> Unit) {
 
 @Composable
 private fun RefreshGlyph(refreshing: Boolean, motion: Boolean, onRefresh: () -> Unit) {
-    // Spins smoothly while a refresh is in flight; when it ends, the icon
-    // finishes its current turn and eases to rest instead of snapping.
     val angle = remember { Animatable(0f) }
     LaunchedEffect(refreshing, motion) {
-        if (refreshing && motion) {
-            while (true) {
-                angle.animateTo(angle.value + 360f, tween(750, easing = LinearEasing))
-            }
-        } else if (angle.value != 0f) {
-            angle.animateTo(ceil(angle.value / 360f) * 360f, tween(400))
-            angle.snapTo(0f)
-        }
+        if (refreshing && motion) angle.spinForever() else angle.settleAtNextFullTurn()
     }
     Icon(
         Icons.Filled.Refresh,
@@ -167,4 +166,18 @@ private fun RefreshGlyph(refreshing: Boolean, motion: Boolean, onRefresh: () -> 
             .size(22.dp)
             .rotate(angle.value),
     )
+}
+
+private const val FULL_TURN_DEGREES = 360f
+
+private suspend fun Animatable<Float, AnimationVector1D>.spinForever() {
+    while (true) {
+        animateTo(value + FULL_TURN_DEGREES, tween(750, easing = LinearEasing))
+    }
+}
+
+private suspend fun Animatable<Float, AnimationVector1D>.settleAtNextFullTurn() {
+    if (value == 0f) return
+    animateTo(ceil(value / FULL_TURN_DEGREES) * FULL_TURN_DEGREES, tween(400))
+    snapTo(0f)
 }

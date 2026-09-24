@@ -7,16 +7,16 @@ import org.junit.Test
 
 class GroupingTest {
 
-    private val procs = listOf(
-        MeminfoParser.ProcSample("com.android.chrome", 8001, 250_000),
-        MeminfoParser.ProcSample(
+    private val processes = listOf(
+        MeminfoParser.ProcessSample("com.android.chrome", 8001, 250_000),
+        MeminfoParser.ProcessSample(
             "com.android.chrome:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
             8123,
             120_000,
         ),
-        MeminfoParser.ProcSample("com.android.chrome:privileged_process0", 8100, 80_500),
-        MeminfoParser.ProcSample("system", 1780, 298_001),
-        MeminfoParser.ProcSample("com.whatsapp", 9001, 60_000),
+        MeminfoParser.ProcessSample("com.android.chrome:privileged_process0", 8100, 80_500),
+        MeminfoParser.ProcessSample("system", 1780, 298_001),
+        MeminfoParser.ProcessSample("com.whatsapp", 9001, 60_000),
     )
 
     private val labels = mapOf(
@@ -26,27 +26,31 @@ class GroupingTest {
 
     @Test
     fun helpersRollUpIntoTheirApp() {
-        val groups = groupByPackage(procs) { labels[it] }
-        val chrome = groups.single { it.packageName == "com.android.chrome" }
+        val groups = groupByOwner(processes) { labels[it] }
+        val chrome = groups.single { it.owner == "com.android.chrome" }
         assertEquals("Chrome", chrome.label)
         assertTrue(chrome.isApp)
         assertEquals(450_500L, chrome.pssKb)
         assertEquals(3, chrome.members.size)
-        // Members sorted by memory, main process first here.
-        assertEquals(8001, chrome.members.first().pid)
+    }
+
+    @Test
+    fun membersAreSortedByMemory() {
+        val chrome = groupByOwner(processes) { labels[it] }.single { it.owner == "com.android.chrome" }
+        assertEquals(listOf(8001, 8123, 8100), chrome.members.map { it.pid })
     }
 
     @Test
     fun sortedByMemoryDescending() {
-        val groups = groupByPackage(procs) { labels[it] }
-        assertEquals("com.android.chrome", groups.first().packageName)
+        val groups = groupByOwner(processes) { labels[it] }
+        assertEquals("com.android.chrome", groups.first().owner)
         assertTrue(groups.zipWithNext().all { (a, b) -> a.pssKb >= b.pssKb })
     }
 
     @Test
     fun nonAppsKeepRawNamesAsStandalone() {
-        val groups = groupByPackage(procs) { labels[it] }
-        val system = groups.single { it.packageName == "system" }
+        val groups = groupByOwner(processes) { labels[it] }
+        val system = groups.single { it.owner == "system" }
         assertFalse(system.isApp)
         assertEquals("system", system.label)
         assertEquals(1, system.members.size)
@@ -54,35 +58,34 @@ class GroupingTest {
 
     @Test
     fun dotSuffixProcessesGroupUnderTheirPackage() {
-        // Google Play services declares extra processes with dot suffixes
-        // instead of the usual "pkg:suffix" form.
         val gms = listOf(
-            MeminfoParser.ProcSample("com.google.android.gms", 500, 62_000),
-            MeminfoParser.ProcSample("com.google.android.gms.persistent", 501, 99_300),
-            MeminfoParser.ProcSample("com.google.android.gms.unstable", 502, 20_000),
-            MeminfoParser.ProcSample("com.android.systemui", 503, 87_700),
+            MeminfoParser.ProcessSample("com.google.android.gms", 500, 62_000),
+            MeminfoParser.ProcessSample("com.google.android.gms.persistent", 501, 99_300),
+            MeminfoParser.ProcessSample("com.google.android.gms.unstable", 502, 20_000),
+            MeminfoParser.ProcessSample("com.android.systemui", 503, 87_700),
         )
-        val groups = groupByPackage(gms) {
+        val groups = groupByOwner(gms) {
             if (it == "com.google.android.gms") "Google Play services" else null
         }
-        val play = groups.single { it.packageName == "com.google.android.gms" }
+        val play = groups.single { it.owner == "com.google.android.gms" }
         assertEquals(181_300L, play.pssKb)
         assertEquals(3, play.members.size)
-        // Unresolvable names must not collapse into each other.
-        assertTrue(groups.any { it.packageName == "com.android.systemui" && !it.isApp })
+        assertTrue(
+            "unresolvable names stay in their own groups",
+            groups.any { it.owner == "com.android.systemui" && !it.isApp },
+        )
     }
 
     @Test
     fun nativeDaemonsDoNotCollapseIntoTheFrameworkPackage() {
-        // "android" (framework-res) is an installed package on every device.
-        // HAL daemons named android.hardware.* must not prefix-walk into it.
         val samples = listOf(
-            MeminfoParser.ProcSample("android.hardware.graphics.composer3-service.ranchu", 390, 6_400),
-            MeminfoParser.ProcSample("android.hardware.audio.service", 377, 3_900),
-            MeminfoParser.ProcSample("android.process.acore", 1712, 12_506),
+            MeminfoParser.ProcessSample("android.hardware.graphics.composer3-service.ranchu", 390, 6_400),
+            MeminfoParser.ProcessSample("android.hardware.audio.service", 377, 3_900),
+            MeminfoParser.ProcessSample("android.process.acore", 1712, 12_506),
         )
-        val groups = groupByPackage(samples) {
-            if (it == "android") "Android System" else null
+        val frameworkPackage = "android"
+        val groups = groupByOwner(samples) {
+            if (it == frameworkPackage) "Android System" else null
         }
         assertEquals(3, groups.size)
         assertTrue(groups.none { it.isApp })
