@@ -75,8 +75,12 @@ service to be running.
 
 ```sh
 ./gradlew assembleDebug   # APK in app/build/outputs/apk/debug/
-./gradlew test            # parser and grouping unit tests
+./gradlew test            # unit tests
 ```
+
+Needs JDK 17 or 21. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full
+check CI runs and the code standards, and [ARCHITECTURE.md](ARCHITECTURE.md)
+for how the pieces fit.
 
 Kotlin and Jetpack Compose, with the Shizuku API as the only non-AndroidX
 dependency.
