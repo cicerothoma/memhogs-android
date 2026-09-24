@@ -1,7 +1,11 @@
 package dev.collinsthomas.memhogs.shizuku
 
 import dev.collinsthomas.memhogs.IShellService
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
+
+private const val COMMAND_TIMEOUT_SECONDS = 60L
 
 class ShellService : IShellService.Stub() {
 
@@ -23,12 +27,17 @@ class ShellService : IShellService.Stub() {
     }
 
     private fun execute(vararg command: String): String {
+        val commandLine = command.joinToString(" ")
         val process = ProcessBuilder(*command)
             .redirectErrorStream(true)
             .start()
-        val output = process.inputStream.bufferedReader().readText()
-        val exitCode = process.waitFor()
-        check(exitCode == 0) { "${command.joinToString(" ")} exited with $exitCode: $output" }
-        return output
+        val output = CompletableFuture.supplyAsync { process.inputStream.bufferedReader().readText() }
+        if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            process.destroyForcibly()
+            error("$commandLine timed out after $COMMAND_TIMEOUT_SECONDS s")
+        }
+        val exitCode = process.exitValue()
+        check(exitCode == 0) { "$commandLine exited with $exitCode: ${output.join()}" }
+        return output.join()
     }
 }
