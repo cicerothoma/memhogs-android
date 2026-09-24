@@ -8,10 +8,12 @@ Gradle module (`app`) and one screen.
 
 ```
 Shizuku server (shell UID)
-  └─ ShellService.meminfo()            shizuku/   runs `dumpsys meminfo`
+  ├─ ShellService.meminfo()            shizuku/   runs `dumpsys meminfo`
+  └─ ShellService.activityProcesses()  shizuku/   runs `dumpsys activity lru`
        │  raw text over binder
        ▼
 MeminfoParser.parse()                   mem/       text → Snapshot of ProcessSample
+ActivityLruParser                       mem/       text → isolated pid → host app uid
 groupByOwner()                          mem/       ProcessSample → AppGroup
        │
        ▼
@@ -53,6 +55,12 @@ services). `groupByOwner` strips the colon suffix, then walks dotted
 prefixes looking for an installed package. It never accepts a prefix
 without a dot, which keeps `android.hardware.*` daemons out of the
 `android` framework package.
+
+**Isolated processes follow their host.** An app that embeds a WebView runs
+its renderer as an isolated process named after the WebView package. Only
+`dumpsys activity lru` records the real owner (`u0a364i961` means isolated
+on behalf of app uid 10364). The ViewModel turns that uid into a package,
+and `groupByOwner` uses it before looking at the name.
 
 **Shizuku user service.** Normal apps cannot read other apps' memory.
 Shizuku runs `ShellService` in its own process with the shell UID. That
