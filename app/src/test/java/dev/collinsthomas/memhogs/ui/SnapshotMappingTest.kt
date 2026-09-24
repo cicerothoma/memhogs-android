@@ -17,22 +17,28 @@ class SnapshotMappingTest {
             MeminfoParser.ProcessSample("com.android.chrome:privileged_process0", 8100, 400_000),
             MeminfoParser.ProcessSample("system", 1780, 300_000),
             MeminfoParser.ProcessSample(OWN_PACKAGE, 9100, 50_000),
+            MeminfoParser.ProcessSample(SYSTEM_UI, 2100, 250_000),
         ),
     )
 
     private val labels = mapOf(
         "com.android.chrome" to "Chrome",
         OWN_PACKAGE to "memhogs",
+        SYSTEM_UI to "System UI",
     )
 
-    private val snapshot = parsed.toUiSnapshot(appLabelOf = { labels[it] }, ownPackage = OWN_PACKAGE)
+    private val snapshot = parsed.toUiSnapshot(
+        appLabelOf = { labels[it] },
+        ownPackage = OWN_PACKAGE,
+        isPersistentApp = { it == SYSTEM_UI },
+    )
 
     @Test
     fun carriesDeviceTotals() {
         assertEquals("7.6 GiB", snapshot.totalText)
         assertEquals("4.8 GiB", snapshot.usedText)
         assertEquals(0.625f, snapshot.usedFraction)
-        assertEquals(4, snapshot.processCount)
+        assertEquals(5, snapshot.processCount)
     }
 
     @Test
@@ -54,13 +60,23 @@ class SnapshotMappingTest {
     }
 
     @Test
+    fun offersForceStopOnlyForOtherAppsThatAreNotPersistent() {
+        val stoppable = snapshot.groups.associate { it.key to it.canForceStop }
+        assertTrue(stoppable.getValue("com.android.chrome"))
+        assertFalse(stoppable.getValue(SYSTEM_UI))
+        assertFalse(stoppable.getValue("system"))
+        assertFalse(stoppable.getValue(OWN_PACKAGE))
+    }
+
+    @Test
     fun zeroTotalRamYieldsZeroShares() {
-        val empty = parsed.copy(totalRamKb = 0).toUiSnapshot({ labels[it] }, OWN_PACKAGE)
+        val empty = parsed.copy(totalRamKb = 0).toUiSnapshot({ labels[it] }, OWN_PACKAGE, isPersistentApp = { false })
         assertEquals(0f, empty.usedFraction)
         assertTrue(empty.groups.all { it.shareOfRam == 0.0 })
     }
 
     private companion object {
         const val OWN_PACKAGE = "dev.collinsthomas.memhogs"
+        const val SYSTEM_UI = "com.android.systemui"
     }
 }

@@ -74,6 +74,12 @@ reused.
 the system does under memory pressure. It never touches foreground apps or
 running services. The app never offers it for system daemons or for itself.
 
+**Force stop is separate and confirmed.** `am force-stop` also closes open
+apps and turns off their alarms, jobs, and notifications until the user
+opens them again. It sits behind a dialog that says so, handles one app at
+a time, and is never offered for persistent apps such as System UI, which
+the system would only restart.
+
 **State lives in the ViewModel.** `MemhogsViewModel` holds a single
 `MemhogsUiState` and the Shizuku binding, so both survive rotation. Errors
 and reclaim outcomes are typed (`LoadError`, `ReclaimResult`). The UI picks

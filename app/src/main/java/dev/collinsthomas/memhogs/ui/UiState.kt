@@ -34,6 +34,7 @@ data class UiGroup(
     val shareOfRam: Double,
     val shareText: String,
     val canReclaim: Boolean,
+    val canForceStop: Boolean,
     val members: List<UiMember>,
 )
 

@@ -36,6 +36,9 @@
         <item quantity="other">%d apps</item>
     </plurals>
     <string name="selection_cancel">cancel</string>
+    <string name="force_stop_button">force stop</string>
+    <string name="force_stop_title">force stop %1$s?</string>
+    <string name="force_stop_explanation">closes it even if it\'s open, and stops its services. its alarms, scheduled jobs and notifications stay off until you open it again.</string>
 
     <!-- Terminal transcripts are typed out line by line; keep lines under 42 characters. -->
     <string name="setup_error">error: shell access required</string>
