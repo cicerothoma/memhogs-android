@@ -107,7 +107,7 @@ fun EatingLoader(motion: Boolean, modifier: Modifier = Modifier) {
 fun BitBar(
     frac: Float,
     modifier: Modifier = Modifier,
-    hotAt: Float = 0.85f,
+    hotAt: Float = HOT_BAR,
 ) {
     val fill by animateFloatAsState(
         targetValue = frac.coerceIn(0f, 1f),
