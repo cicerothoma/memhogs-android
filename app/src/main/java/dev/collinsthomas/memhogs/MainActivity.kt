@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
         error = null
         lifecycleScope.launch {
             try {
-                val raw = withContext(Dispatchers.IO) { svc.run("dumpsys meminfo") }
+                val raw = withContext(Dispatchers.IO) { svc.meminfo() }
                 val parsed = MeminfoParser.parse(raw)
                 if (parsed.processes.isEmpty()) {
                     error = "dumpsys returned no per-process data"
@@ -184,7 +184,7 @@ class MainActivity : ComponentActivity() {
         pendingReclaim = Triple(pkg, before.label, before.memKb)
         lifecycleScope.launch {
             try {
-                withContext(Dispatchers.IO) { svc.run("am kill $pkg") }
+                withContext(Dispatchers.IO) { svc.killBackgroundProcesses(pkg) }
                 delay(900) // give the kernel a beat to settle before measuring
                 refresh()
             } catch (e: Exception) {

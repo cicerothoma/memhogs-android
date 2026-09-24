@@ -6,5 +6,7 @@ interface IShellService {
 
     void exit() = 1;
 
-    String run(String command) = 2;
+    String meminfo() = 3;
+
+    void killBackgroundProcesses(String packageName) = 4;
 }
