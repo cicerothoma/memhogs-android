@@ -25,9 +25,10 @@ MemhogsApp and its composables          ui/        stateless; render state, emit
 ```
 
 Reclaim runs the other way: `MemhogsViewModel.reclaimBackgroundMemory()` →
-`ShellService.killBackgroundProcesses()` → `am kill`. The ViewModel then
-measures again and turns the before/after difference into a `ReclaimResult`
-through `PendingReclaim`.
+`ShellService.killBackgroundProcesses()` → `am kill`, once for each selected
+package. The ViewModel then measures again and turns the before/after
+difference, summed across the packages, into a `ReclaimResult` through
+`PendingReclaim`.
 
 ## Packages
 

@@ -26,6 +26,16 @@
     <string name="reclaim_explanation">kills background processes only, the same reclaim android does under memory pressure. nothing you have open is touched.</string>
     <string name="reclaim_freed">%1$s: reclaimed %2$s</string>
     <string name="reclaim_nothing">%1$s: nothing to reclaim right now</string>
+    <string name="reclaim_bulk_hint">long-press apps to reclaim several at once.</string>
+    <plurals name="selection_summary">
+        <item quantity="one">%1$d app selected · %2$s</item>
+        <item quantity="other">%1$d apps selected · %2$s</item>
+    </plurals>
+    <plurals name="app_count">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
+    <string name="selection_cancel">cancel</string>
 
     <!-- Terminal transcripts are typed out line by line; keep lines under 42 characters. -->
     <string name="setup_error">error: shell access required</string>

@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,7 +34,7 @@ fun MemhogsApp(
     onRequestPermission: () -> Unit,
     onOpenShizuku: () -> Unit,
     onGetShizuku: () -> Unit,
-    onReclaim: (String) -> Unit,
+    onReclaim: (Set<String>) -> Unit,
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -103,9 +104,12 @@ fun MemhogsApp(
 }
 
 @Composable
-private fun ReclaimResult.message(): String = when (this) {
-    is ReclaimResult.Reclaimed -> stringResource(R.string.reclaim_freed, label, humanReadableKb(freedKb))
-    is ReclaimResult.NothingToReclaim -> stringResource(R.string.reclaim_nothing, label)
+private fun ReclaimResult.message(): String {
+    val subject = labels.singleOrNull() ?: pluralStringResource(R.plurals.app_count, labels.size, labels.size)
+    return when (this) {
+        is ReclaimResult.Reclaimed -> stringResource(R.string.reclaim_freed, subject, humanReadableKb(freedKb))
+        is ReclaimResult.NothingToReclaim -> stringResource(R.string.reclaim_nothing, subject)
+    }
 }
 
 @Composable

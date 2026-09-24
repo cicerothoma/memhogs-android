@@ -46,8 +46,8 @@ sealed interface LoadError {
 }
 
 sealed interface ReclaimResult {
-    val label: String
+    val labels: List<String>
 
-    data class Reclaimed(override val label: String, val freedKb: Long) : ReclaimResult
-    data class NothingToReclaim(override val label: String) : ReclaimResult
+    data class Reclaimed(override val labels: List<String>, val freedKb: Long) : ReclaimResult
+    data class NothingToReclaim(override val labels: List<String>) : ReclaimResult
 }
