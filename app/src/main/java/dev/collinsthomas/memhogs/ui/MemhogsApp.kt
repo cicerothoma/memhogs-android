@@ -90,7 +90,7 @@ fun MemhogsApp(
                     )
                     ShizukuAccess.NEEDS_PERMISSION -> PermissionScreen(motion, onRequestPermission)
                     ShizukuAccess.READY -> when {
-                        state.error != null -> ErrorScreen(state.error.message(), motion, onRefresh)
+                        state.error != null -> ErrorScreen(state.error.message(), state.error.hint(), motion, onRefresh)
                         state.snapshot == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             EatingLoader(motion)
                         }
@@ -111,5 +111,12 @@ private fun ReclaimResult.message(): String = when (this) {
 @Composable
 private fun LoadError.message(): String = when (this) {
     LoadError.EmptyMeminfo -> stringResource(R.string.error_empty_meminfo)
+    LoadError.ShellDidNotStart -> stringResource(R.string.error_shell_did_not_start)
     is LoadError.Failed -> detail
+}
+
+@Composable
+private fun LoadError.hint(): String? = when (this) {
+    LoadError.ShellDidNotStart -> stringResource(R.string.error_shell_did_not_start_hint)
+    LoadError.EmptyMeminfo, is LoadError.Failed -> null
 }

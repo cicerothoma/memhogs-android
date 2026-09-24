@@ -61,7 +61,7 @@ class MemhogsViewModel(application: Application) :
     }
 
     fun refresh() {
-        mutableState.update { it.copy(gauge = readGauge()) }
+        mutableState.update { it.copy(gauge = readGauge(), error = null) }
         shizuku.evaluateAccess()
         loadSnapshot()
     }
@@ -93,6 +93,10 @@ class MemhogsViewModel(application: Application) :
 
     override fun onShellFailed(error: Throwable) {
         showFailure(error)
+    }
+
+    override fun onShellTimedOut() {
+        mutableState.update { it.copy(error = LoadError.ShellDidNotStart) }
     }
 
     override fun onCleared() {
