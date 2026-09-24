@@ -1,8 +1,6 @@
 package dev.collinsthomas.memhogs.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,7 +33,7 @@ internal fun ForceStopDialog(label: String, onConfirm: () -> Unit, onDismiss: ()
                     color = Palette.Text,
                     modifier = Modifier.padding(top = 12.dp),
                 )
-                Row(Modifier.padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TermButtonRow(Modifier.padding(top = 18.dp)) {
                     TermButton(stringResource(R.string.force_stop_button), onClick = onConfirm)
                     TermButton(stringResource(R.string.selection_cancel), accent = Palette.Dim, onClick = onDismiss)
                 }
