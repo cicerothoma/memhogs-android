@@ -1,0 +1,79 @@
+# Architecture
+
+memhogs reads `dumpsys meminfo` through a Shizuku shell, rolls processes up
+into the apps that own them, and renders the result in Compose. There is one
+Gradle module (`app`) and one screen.
+
+## Data flow
+
+```
+Shizuku server (shell UID)
+  └─ ShellService.meminfo()            shizuku/   runs `dumpsys meminfo`
+       │  raw text over binder
+       ▼
+MeminfoParser.parse()                   mem/       text → Snapshot of ProcSample
+groupByPackage()                        mem/       ProcSample → AppGroup
+       │
+       ▼
+toUiSnapshot()                          ui/        AppGroup → display-ready UiSnapshot
+MemhogsViewModel                        root       owns MemhogsUiState (StateFlow)
+       │
+       ▼
+MemhogsApp and its composables          ui/        stateless; render state, emit events
+```
+
+Reclaim runs the other way: `MemhogsViewModel.reclaim()` →
+`ShellService.killBackgroundProcesses()` → `am kill`. The ViewModel then
+measures again and turns the before/after difference into a `ReclaimResult`
+through `PendingReclaim`.
+
+## Packages
+
+| Package | Owns | May depend on |
+|---|---|---|
+| `mem/` | Parsing `dumpsys` output, grouping processes by owner package | Kotlin stdlib only |
+| `shizuku/` | The privileged `ShellService`, binding it (`ShizukuConnection`), package-name validation | Android, Shizuku |
+| `ui/` | UI state types, mapping to them, formatting, composables, palette | `mem/`, `ShizukuAccess` enum, Compose |
+| root | `MainActivity` (intents, system settings), `MemhogsViewModel` (orchestration) | everything |
+
+Dependencies point inward. `ui/` takes only the `ShizukuAccess` enum from
+`shizuku/` and calls no Android services. `mem/` imports nothing Android. That is what lets `mem/` and the mapping
+in `ui/` run as plain JVM unit tests.
+
+## Decisions
+
+**PSS as the metric.** Proportional set size charges a page shared by N
+processes 1/N to each, so group sums never double-count. It matches the
+memhogs CLI and Android's own low-memory killer.
+
+**Grouping by process name, not process tree.** Every Android app forks from
+zygote, so the tree carries no ownership. An app's extra processes are
+named `<package>:<suffix>`, or sometimes `<package>.<suffix>` (Play
+services). `groupByPackage` strips the colon suffix, then walks dotted
+prefixes looking for an installed package. It never accepts a prefix
+without a dot, which keeps `android.hardware.*` daemons out of the
+`android` framework package.
+
+**Shizuku user service.** Normal apps cannot read other apps' memory.
+Shizuku runs `ShellService` in its own process with the shell UID. That
+service is the only code that runs with elevated privilege. It exposes
+typed operations and never accepts a raw command. AIDL transaction codes
+are append-only. Code 2 (the old `run(command)`) is retired and must not be
+reused.
+
+**Reclaim is `am kill`.** It kills background processes only, which is what
+the system does under memory pressure. It never touches foreground apps or
+running services. The app never offers it for system daemons or for itself.
+
+**State lives in the ViewModel.** `MemhogsViewModel` holds a single
+`MemhogsUiState` and the Shizuku binding, so both survive rotation. Errors
+and reclaim outcomes are typed (`LoadError`, `ReclaimResult`). The UI picks
+the wording from `strings.xml`.
+
+**No network.** The manifest declares no `INTERNET` permission. Memory data
+never leaves the device.
+
+## Release and distribution
+
+Signing, versioning, and F-Droid metadata are covered in
+[RELEASING.md](RELEASING.md).
