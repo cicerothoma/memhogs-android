@@ -15,6 +15,8 @@ class ShellService : IShellService.Stub() {
 
     override fun meminfo(): String = execute("dumpsys", "meminfo")
 
+    override fun activityProcesses(): String = execute("dumpsys", "activity", "lru")
+
     override fun killBackgroundProcesses(packageName: String) {
         require(isValidPackageName(packageName)) { "not a package name: $packageName" }
         execute("am", "kill", packageName)

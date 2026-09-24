@@ -13,10 +13,14 @@ data class AppGroup(
     val members: List<Member>,
 )
 
-fun groupByOwner(processes: List<MeminfoParser.ProcessSample>, appLabelOf: (String) -> String?): List<AppGroup> {
+fun groupByOwner(
+    processes: List<MeminfoParser.ProcessSample>,
+    hostPackageOfPid: Map<Int, String> = emptyMap(),
+    appLabelOf: (String) -> String?,
+): List<AppGroup> {
     val isInstalledApp = { name: String -> appLabelOf(name) != null }
     return processes
-        .groupBy { ownerOf(it.name, isInstalledApp) }
+        .groupBy { hostPackageOfPid[it.pid] ?: ownerOf(it.name, isInstalledApp) }
         .map { (owner, samples) -> appGroupOf(owner, samples, appLabelOf(owner)) }
         .sortedByDescending { it.pssKb }
 }

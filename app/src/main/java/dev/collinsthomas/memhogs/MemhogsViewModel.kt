@@ -6,6 +6,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.collinsthomas.memhogs.mem.ActivityLruParser
 import dev.collinsthomas.memhogs.mem.MeminfoParser
 import dev.collinsthomas.memhogs.shizuku.SHIZUKU_PACKAGE
 import dev.collinsthomas.memhogs.shizuku.ShizukuAccess
@@ -109,13 +110,20 @@ class MemhogsViewModel(application: Application) :
     }
 
     private suspend fun measure(shell: IShellService) {
-        val parsed = MeminfoParser.parse(withContext(Dispatchers.IO) { shell.meminfo() })
+        val (meminfo, activityProcesses) = withContext(Dispatchers.IO) {
+            shell.meminfo() to shell.activityProcesses()
+        }
+        val parsed = MeminfoParser.parse(meminfo)
         if (parsed.processes.isEmpty()) {
             mutableState.update { it.copy(error = LoadError.EmptyMeminfo) }
             return
         }
         val snapshot = withContext(Dispatchers.Default) {
-            parsed.toUiSnapshot(appLabelOf = ::appLabel, ownPackage = BuildConfig.APPLICATION_ID)
+            parsed.toUiSnapshot(
+                appLabelOf = ::appLabel,
+                ownPackage = BuildConfig.APPLICATION_ID,
+                hostPackageOfPid = hostPackagesOfIsolatedProcesses(activityProcesses),
+            )
         }
         mutableState.update { it.copy(snapshot = snapshot) }
         resolvePendingReclaim(snapshot)
@@ -152,6 +160,13 @@ class MemhogsViewModel(application: Application) :
         activityManager.getMemoryInfo(info)
         return Gauge(totalBytes = info.totalMem, availBytes = info.availMem, low = info.lowMemory)
     }
+
+    private fun hostPackagesOfIsolatedProcesses(activityProcesses: String): Map<Int, String> =
+        ActivityLruParser.hostUidsOfIsolatedProcesses(activityProcesses)
+            .mapNotNull { (pid, hostUid) -> packageOfUid(hostUid)?.let { pid to it } }
+            .toMap()
+
+    private fun packageOfUid(uid: Int): String? = packageManager.getPackagesForUid(uid)?.firstOrNull()
 
     private fun appLabel(packageName: String): String? =
         applicationInfo(packageName)?.let { packageManager.getApplicationLabel(it).toString() }
