@@ -7,6 +7,7 @@ import dev.collinsthomas.memhogs.mem.groupByOwner
 fun MeminfoParser.Snapshot.toUiSnapshot(
     appLabelOf: (String) -> String?,
     ownPackage: String,
+    isPersistentApp: (String) -> Boolean,
     hostPackageOfPid: Map<Int, String> = emptyMap(),
 ): UiSnapshot {
     val groups = groupByOwner(processes, hostPackageOfPid, memoize(appLabelOf))
@@ -17,7 +18,7 @@ fun MeminfoParser.Snapshot.toUiSnapshot(
         usedText = humanReadableKb(usedRamKb),
         usedFraction = fractionOf(usedRamKb, totalRamKb).toFloat(),
         processCount = processes.size,
-        groups = groups.map { it.toUiGroup(totalRamKb, ownPackage) },
+        groups = groups.map { it.toUiGroup(totalRamKb, ownPackage, isPersistentApp) },
     )
 }
 
@@ -30,8 +31,9 @@ private fun <K, V> memoize(compute: (K) -> V): (K) -> V {
 
 private fun fractionOf(kb: Long, totalKb: Long): Double = if (totalKb > 0) kb.toDouble() / totalKb else 0.0
 
-private fun AppGroup.toUiGroup(totalRamKb: Long, ownPackage: String): UiGroup {
+private fun AppGroup.toUiGroup(totalRamKb: Long, ownPackage: String, isPersistentApp: (String) -> Boolean): UiGroup {
     val share = fractionOf(pssKb, totalRamKb)
+    val canReclaim = isApp && owner != ownPackage
     return UiGroup(
         key = owner,
         label = label,
@@ -40,7 +42,8 @@ private fun AppGroup.toUiGroup(totalRamKb: Long, ownPackage: String): UiGroup {
         memKb = pssKb,
         shareOfRam = share,
         shareText = percent(share),
-        canReclaim = isApp && owner != ownPackage,
+        canReclaim = canReclaim,
+        canForceStop = canReclaim && !isPersistentApp(owner),
         members = members.map { UiMember(name = it.processName, pid = it.pid, memText = humanReadableKb(it.pssKb)) },
     )
 }

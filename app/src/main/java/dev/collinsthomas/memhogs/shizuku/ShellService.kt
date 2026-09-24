@@ -22,8 +22,16 @@ class ShellService : IShellService.Stub() {
     override fun activityProcesses(): String = execute("dumpsys", "activity", "lru")
 
     override fun killBackgroundProcesses(packageName: String) {
+        execute("am", "kill", validPackageName(packageName))
+    }
+
+    override fun forceStop(packageName: String) {
+        execute("am", "force-stop", validPackageName(packageName))
+    }
+
+    private fun validPackageName(packageName: String): String {
         require(isValidPackageName(packageName)) { "not a package name: $packageName" }
-        execute("am", "kill", packageName)
+        return packageName
     }
 
     private fun execute(vararg command: String): String {

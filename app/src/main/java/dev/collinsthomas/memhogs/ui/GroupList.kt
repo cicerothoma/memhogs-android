@@ -57,10 +57,16 @@ import androidx.compose.ui.unit.sp
 import dev.collinsthomas.memhogs.R
 
 @Composable
-internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (Set<String>) -> Unit) {
+internal fun GroupList(
+    snapshot: UiSnapshot,
+    motion: Boolean,
+    onReclaim: (Set<String>) -> Unit,
+    onForceStop: (String) -> Unit,
+) {
     var filter by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var confirmingForceStop by rememberSaveable { mutableStateOf<String?>(null) }
 
     val shown = remember(snapshot, filter) { snapshot.groups.matching(filter) }
     val selectedGroups = remember(snapshot, selected) { snapshot.groups.filter { it.key in selected } }
@@ -86,11 +92,22 @@ internal fun GroupList(snapshot: UiSnapshot, motion: Boolean, onReclaim: (Set<St
                             onToggleExpanded = { expanded = expanded.toggle(group.key) },
                             onToggleSelected = { selected = selected.toggle(group.key) },
                             onReclaim = { onReclaim(setOf(group.key)) },
+                            onForceStop = { confirmingForceStop = group.key },
                         )
                     }
                 }
                 item { ListFooter(shown.size, snapshot.groups.size) }
             }
+        }
+        snapshot.groups.find { it.key == confirmingForceStop }?.let { group ->
+            ForceStopDialog(
+                label = group.label,
+                onConfirm = {
+                    onForceStop(group.key)
+                    confirmingForceStop = null
+                },
+                onDismiss = { confirmingForceStop = null },
+            )
         }
         if (selecting) {
             SelectionBar(
@@ -231,6 +248,7 @@ private fun GroupRow(
     onToggleExpanded: () -> Unit,
     onToggleSelected: () -> Unit,
     onReclaim: () -> Unit,
+    onForceStop: () -> Unit,
 ) {
     val expandable = group.members.size > 1 || group.canReclaim
     val hot = group.shareOfRam >= HOT_GROUP_SHARE_OF_RAM
@@ -258,7 +276,7 @@ private fun GroupRow(
         ) {
             Column(Modifier.padding(start = 14.dp, bottom = 8.dp)) {
                 MemberTree(group.members, group.key)
-                if (group.canReclaim) ReclaimPanel(onReclaim)
+                if (group.canReclaim) ReclaimPanel(group.canForceStop, onReclaim, onForceStop)
             }
         }
     }
@@ -362,9 +380,12 @@ private fun MemberTree(members: List<UiMember>, owner: String) {
 }
 
 @Composable
-private fun ReclaimPanel(onReclaim: () -> Unit) {
-    Row(Modifier.padding(top = 12.dp)) {
+private fun ReclaimPanel(canForceStop: Boolean, onReclaim: () -> Unit, onForceStop: () -> Unit) {
+    Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         TermButton(stringResource(R.string.reclaim_button), onClick = onReclaim)
+        if (canForceStop) {
+            TermButton(stringResource(R.string.force_stop_button), accent = Palette.Dim, onClick = onForceStop)
+        }
     }
     Text(
         stringResource(R.string.reclaim_explanation),

@@ -35,6 +35,7 @@ fun MemhogsApp(
     onOpenShizuku: () -> Unit,
     onGetShizuku: () -> Unit,
     onReclaim: (Set<String>) -> Unit,
+    onForceStop: (String) -> Unit,
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -95,7 +96,7 @@ fun MemhogsApp(
                         state.snapshot == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             EatingLoader(motion)
                         }
-                        else -> GroupList(state.snapshot, motion, onReclaim)
+                        else -> GroupList(state.snapshot, motion, onReclaim, onForceStop)
                     }
                 }
             }

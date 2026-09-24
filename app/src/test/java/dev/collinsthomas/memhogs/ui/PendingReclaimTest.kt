@@ -51,7 +51,7 @@ class PendingReclaimTest {
         )
         assertEquals(
             PendingReclaim(listOf(chrome)),
-            PendingReclaim.of(snapshot, setOf("com.android.chrome", "surfaceflinger")),
+            PendingReclaim.of(snapshot, setOf("com.android.chrome", "surfaceflinger"), UiGroup::canReclaim),
         )
     }
 
@@ -60,7 +60,7 @@ class PendingReclaimTest {
         val snapshot = snapshotWithGroups(
             group(ReclaimTarget("surfaceflinger", "surfaceflinger", 0), memKb = 90_000, canReclaim = false),
         )
-        assertNull(PendingReclaim.of(snapshot, setOf("surfaceflinger", "com.gone.app")))
+        assertNull(PendingReclaim.of(snapshot, setOf("surfaceflinger", "com.gone.app"), UiGroup::canReclaim))
     }
 
     private fun group(target: ReclaimTarget, memKb: Long, canReclaim: Boolean = true) = UiGroup(
@@ -72,6 +72,7 @@ class PendingReclaimTest {
         shareOfRam = 0.0,
         shareText = "",
         canReclaim = canReclaim,
+        canForceStop = canReclaim,
         members = emptyList(),
     )
 

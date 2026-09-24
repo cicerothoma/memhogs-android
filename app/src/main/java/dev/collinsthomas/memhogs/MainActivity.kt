@@ -29,6 +29,7 @@ class MainActivity : ComponentActivity() {
                 onOpenShizuku = ::openShizuku,
                 onGetShizuku = ::getShizukuFromGitHub,
                 onReclaim = viewModel::reclaimBackgroundMemory,
+                onForceStop = viewModel::forceStop,
             )
         }
     }

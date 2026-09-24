@@ -15,6 +15,7 @@ import dev.collinsthomas.memhogs.ui.Gauge
 import dev.collinsthomas.memhogs.ui.LoadError
 import dev.collinsthomas.memhogs.ui.MemhogsUiState
 import dev.collinsthomas.memhogs.ui.PendingReclaim
+import dev.collinsthomas.memhogs.ui.UiGroup
 import dev.collinsthomas.memhogs.ui.UiSnapshot
 import dev.collinsthomas.memhogs.ui.toUiSnapshot
 import kotlinx.coroutines.CancellationException
@@ -71,13 +72,25 @@ class MemhogsViewModel(application: Application) :
     }
 
     fun reclaimBackgroundMemory(packageNames: Set<String>) {
+        reclaim(packageNames, UiGroup::canReclaim, IShellService::killBackgroundProcesses)
+    }
+
+    fun forceStop(packageName: String) {
+        reclaim(setOf(packageName), UiGroup::canForceStop, IShellService::forceStop)
+    }
+
+    private fun reclaim(
+        packageNames: Set<String>,
+        eligible: (UiGroup) -> Boolean,
+        stop: IShellService.(String) -> Unit,
+    ) {
         val shell = shizuku.shell ?: return
         val snapshot = state.value.snapshot ?: return
-        val pending = PendingReclaim.of(snapshot, packageNames) ?: return
+        val pending = PendingReclaim.of(snapshot, packageNames, eligible) ?: return
         pendingReclaim = pending
         viewModelScope.launch {
             reportingFailures {
-                withContext(Dispatchers.IO) { pending.packageNames.forEach(shell::killBackgroundProcesses) }
+                withContext(Dispatchers.IO) { pending.packageNames.forEach { shell.stop(it) } }
                 delay(RECLAIM_SETTLE_MILLIS)
                 loadSnapshot()
             }
@@ -127,6 +140,7 @@ class MemhogsViewModel(application: Application) :
             parsed.toUiSnapshot(
                 appLabelOf = ::appLabel,
                 ownPackage = BuildConfig.APPLICATION_ID,
+                isPersistentApp = ::isPersistentApp,
                 hostPackageOfPid = hostPackagesOfIsolatedProcesses(activityProcesses),
             )
         }
@@ -177,6 +191,9 @@ class MemhogsViewModel(application: Application) :
         applicationInfo(packageName)?.let { packageManager.getApplicationLabel(it).toString() }
 
     private fun isInstalled(packageName: String): Boolean = applicationInfo(packageName) != null
+
+    private fun isPersistentApp(packageName: String): Boolean =
+        applicationInfo(packageName)?.let { it.flags and ApplicationInfo.FLAG_PERSISTENT != 0 } ?: false
 
     private fun applicationInfo(packageName: String): ApplicationInfo? = try {
         packageManager.getApplicationInfo(packageName, 0)

@@ -17,11 +17,12 @@ data class PendingReclaim(val targets: List<ReclaimTarget>) {
     }
 
     companion object {
-        fun of(snapshot: UiSnapshot, packageNames: Set<String>): PendingReclaim? = snapshot.groups
-            .filter { it.canReclaim && it.key in packageNames }
-            .map { ReclaimTarget(it.key, it.label, it.memKb) }
-            .takeIf { it.isNotEmpty() }
-            ?.let(::PendingReclaim)
+        fun of(snapshot: UiSnapshot, packageNames: Set<String>, eligible: (UiGroup) -> Boolean): PendingReclaim? =
+            snapshot.groups
+                .filter { eligible(it) && it.key in packageNames }
+                .map { ReclaimTarget(it.key, it.label, it.memKb) }
+                .takeIf { it.isNotEmpty() }
+                ?.let(::PendingReclaim)
     }
 }
 

@@ -11,4 +11,6 @@ interface IShellService {
     void killBackgroundProcesses(String packageName) = 4;
 
     String activityProcesses() = 5;
+
+    void forceStop(String packageName) = 6;
 }
