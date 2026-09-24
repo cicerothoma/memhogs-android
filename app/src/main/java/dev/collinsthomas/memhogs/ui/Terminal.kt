@@ -23,13 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -135,7 +133,7 @@ fun TermButton(label: String, accent: Color = Palette.Amber, onClick: () -> Unit
             .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
             .background(accent.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Text(
             "[ $label ]",

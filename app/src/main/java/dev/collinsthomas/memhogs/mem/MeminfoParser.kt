@@ -61,6 +61,5 @@ object MeminfoParser {
 
     private fun kb(s: String): Long = s.replace(",", "").toLong()
 
-    private fun leadingKb(s: String): Long =
-        firstKb.find(s)?.groupValues?.get(1)?.let(::kb) ?: 0
+    private fun leadingKb(s: String): Long = firstKb.find(s)?.groupValues?.get(1)?.let(::kb) ?: 0
 }
