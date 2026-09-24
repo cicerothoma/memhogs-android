@@ -4,10 +4,7 @@ import dev.collinsthomas.memhogs.mem.AppGroup
 import dev.collinsthomas.memhogs.mem.MeminfoParser
 import dev.collinsthomas.memhogs.mem.groupByPackage
 
-fun MeminfoParser.Snapshot.toUiSnapshot(
-    labelOf: (String) -> String?,
-    ownPackage: String,
-): UiSnapshot {
+fun MeminfoParser.Snapshot.toUiSnapshot(labelOf: (String) -> String?, ownPackage: String): UiSnapshot {
     // The owner-package walk probes several candidate names per process,
     // so cache the answers for the duration of one snapshot.
     val labelCache = mutableMapOf<String, String?>()
@@ -23,8 +20,7 @@ fun MeminfoParser.Snapshot.toUiSnapshot(
     )
 }
 
-private fun fractionOf(kb: Long, totalKb: Long): Double =
-    if (totalKb > 0) kb.toDouble() / totalKb else 0.0
+private fun fractionOf(kb: Long, totalKb: Long): Double = if (totalKb > 0) kb.toDouble() / totalKb else 0.0
 
 private fun AppGroup.toUiGroup(totalRamKb: Long, ownPackage: String): UiGroup {
     val share = fractionOf(pssKb, totalRamKb)

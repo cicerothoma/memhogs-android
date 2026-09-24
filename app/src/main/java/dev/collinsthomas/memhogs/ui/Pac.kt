@@ -82,7 +82,7 @@ fun Bits(active: Boolean, motion: Boolean, modifier: Modifier = Modifier) {
                         alpha = if (i == 0) 1f - shift else 1f
                     }
                     .size(5.dp)
-                    .background(Palette.Cyan.copy(alpha = if (i == 2) 0.6f else 1f))
+                    .background(Palette.Cyan.copy(alpha = if (i == 2) 0.6f else 1f)),
             )
             if (i < 2) Spacer(Modifier.width(step - 5.dp))
         }
@@ -104,11 +104,7 @@ fun EatingLoader(motion: Boolean, modifier: Modifier = Modifier) {
  * until [hotAt], red past it.
  */
 @Composable
-fun BitBar(
-    frac: Float,
-    modifier: Modifier = Modifier,
-    hotAt: Float = HOT_BAR,
-) {
+fun BitBar(frac: Float, modifier: Modifier = Modifier, hotAt: Float = HOT_BAR) {
     val fill by animateFloatAsState(
         targetValue = frac.coerceIn(0f, 1f),
         animationSpec = tween(900, easing = FastOutSlowInEasing),

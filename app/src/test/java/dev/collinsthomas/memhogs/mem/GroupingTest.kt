@@ -44,7 +44,7 @@ class GroupingTest {
     }
 
     @Test
-    fun nonAppsKeepRawNamesAsStandalone()  {
+    fun nonAppsKeepRawNamesAsStandalone() {
         val groups = groupByPackage(procs) { labels[it] }
         val system = groups.single { it.packageName == "system" }
         assertFalse(system.isApp)

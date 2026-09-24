@@ -28,10 +28,7 @@ data class AppGroup(
  * installed app (system daemons, native services); those keep their raw
  * name, matching the CLI's standalone groups.
  */
-fun groupByPackage(
-    procs: List<MeminfoParser.ProcSample>,
-    labelOf: (String) -> String?,
-): List<AppGroup> {
+fun groupByPackage(procs: List<MeminfoParser.ProcSample>, labelOf: (String) -> String?): List<AppGroup> {
     // Most helper processes are named "<package>:<suffix>", but apps can
     // declare any process name, and Google Play services uses dot suffixes
     // ("com.google.android.gms.persistent"). After stripping a colon suffix,
