@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="header_used">%1$s de %2$s em uso</string>
+    <plurals name="header_used_with_processes">
+        <item quantity="one">%1$s de %2$s em uso · %3$d processo</item>
+        <item quantity="many">%1$s de %2$s em uso · %3$d processos</item>
+        <item quantity="other">%1$s de %2$s em uso · %3$d processos</item>
+    </plurals>
+    <string name="live">ao vivo</string>
+    <string name="refresh">Atualizar</string>
+
+    <string name="filter_hint">filtrar por nome</string>
+    <string name="filter_clear">Limpar filtro</string>
+    <string name="filter_no_match">nenhum grupo corresponde a \"%1$s\"</string>
+    <plurals name="list_footer">
+        <item quantity="one">%1$d de %2$d grupo · métrica: PSS, páginas compartilhadas divididas de forma justa</item>
+        <item quantity="many">%1$d de %2$d grupos · métrica: PSS, páginas compartilhadas divididas de forma justa</item>
+        <item quantity="other">%1$d de %2$d grupos · métrica: PSS, páginas compartilhadas divididas de forma justa</item>
+    </plurals>
+    <plurals name="process_count">
+        <item quantity="one">%d processo</item>
+        <item quantity="many">%d processos</item>
+        <item quantity="other">%d processos</item>
+    </plurals>
+
+    <string name="reclaim_button">liberar memória</string>
+    <string name="reclaim_explanation">encerra só processos em segundo plano, como o android faz quando falta memória. nada que você tenha aberto é afetado.</string>
+    <string name="reclaim_freed">%1$s: %2$s liberados</string>
+    <string name="reclaim_nothing">%1$s: nada para liberar agora</string>
+    <string name="reclaim_bulk_hint">toque e segure nos apps para liberar vários de uma vez.</string>
+    <plurals name="selection_summary">
+        <item quantity="one">%1$d app selecionado · %2$s</item>
+        <item quantity="many">%1$d apps selecionados · %2$s</item>
+        <item quantity="other">%1$d apps selecionados · %2$s</item>
+    </plurals>
+    <plurals name="app_count">
+        <item quantity="one">%d app</item>
+        <item quantity="many">%d apps</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
+    <string name="selection_cancel">cancelar</string>
+    <string name="force_stop_button">forçar parada</string>
+    <string name="force_stop_title">forçar parada de %1$s?</string>
+    <string name="force_stop_explanation">fecha o app mesmo se estiver aberto e para os serviços dele. alarmes, tarefas agendadas e notificações ficam desligados até você abrir o app de novo.</string>
+
+    <!-- Terminal transcripts are typed out line by line; keep lines under 42 characters. -->
+    <string name="setup_error">erro: acesso ao shell necessário</string>
+    <string name="setup_explanation">o android esconde a memória dos outros\napps de apps comuns. o shizuku libera\ncomo um depurador usb faria. sem root.</string>
+    <string name="setup_steps">"  1. instale o shizuku\n  2. inicie o serviço (uma vez por boot)\n  3. volte aqui e conceda o acesso"</string>
+    <string name="setup_play_store_note">nota: se a play store disser que o\nshizuku é incompatível com seu android,\ninstale o apk das releases no github.</string>
+    <string name="setup_open_shizuku">abrir shizuku</string>
+    <string name="setup_get_shizuku">baixar shizuku · github</string>
+    <string name="setup_check_again">verificar de novo</string>
+
+    <string name="permission_status">rodando · memhogs sem autorização</string>
+    <string name="permission_explanation">falta um toque. conceda o acesso e todo\napp deste celular se alinha por memória.</string>
+    <string name="permission_grant">conceder acesso</string>
+
+    <string name="error_line">erro: %1$s</string>
+    <string name="error_empty_meminfo">o dumpsys não retornou dados por processo</string>
+    <string name="error_shell_did_not_start">o shizuku não iniciou o shell</string>
+    <string name="error_shell_did_not_start_hint">o shizuku está rodando, mas o shell do\nmemhogs nunca respondeu. alguns\nsistemas, como o hyperos 3, bloqueiam\nisso. reinicie o shizuku e tente de novo.</string>
+    <string name="error_retry">tentar de novo</string>
+</resources>
