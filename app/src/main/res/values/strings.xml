@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">memhogs</string>
+    <string name="app_name" translatable="false">memhogs</string>
 
     <string name="header_used">%1$s of %2$s used</string>
     <plurals name="header_used_with_processes">
