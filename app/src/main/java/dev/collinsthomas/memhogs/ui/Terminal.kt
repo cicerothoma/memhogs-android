@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -115,6 +116,15 @@ private fun blinkingAlpha(): Float {
         label = "blink",
     )
     return alpha
+}
+
+@Composable
+fun TermButtonRow(modifier: Modifier = Modifier, buttons: @Composable () -> Unit) {
+    FlowRow(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) { buttons() }
 }
 
 @Composable

@@ -16,7 +16,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -163,7 +162,7 @@ private fun SelectionBar(count: Int, memText: String, onReclaim: () -> Unit, onC
             fontSize = 13.sp,
             color = Palette.Amber,
         )
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        TermButtonRow(Modifier.padding(top = 8.dp)) {
             TermButton(stringResource(R.string.reclaim_button), onClick = onReclaim)
             TermButton(stringResource(R.string.selection_cancel), accent = Palette.Dim, onClick = onCancel)
         }
@@ -381,7 +380,7 @@ private fun MemberTree(members: List<UiMember>, owner: String) {
 
 @Composable
 private fun ReclaimPanel(canForceStop: Boolean, onReclaim: () -> Unit, onForceStop: () -> Unit) {
-    Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    TermButtonRow(Modifier.padding(top = 12.dp)) {
         TermButton(stringResource(R.string.reclaim_button), onClick = onReclaim)
         if (canForceStop) {
             TermButton(stringResource(R.string.force_stop_button), accent = Palette.Dim, onClick = onForceStop)
