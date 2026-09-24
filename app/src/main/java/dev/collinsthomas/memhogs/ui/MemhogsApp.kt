@@ -58,57 +58,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.collinsthomas.memhogs.mem.humanKb
+import dev.collinsthomas.memhogs.shizuku.ShizukuAccess
 import kotlinx.coroutines.delay
 import kotlin.math.ceil
-
-enum class ShizukuAccess { NOT_RUNNING, NEEDS_PERMISSION, READY }
-
-data class Gauge(val totalBytes: Long, val availBytes: Long, val low: Boolean)
-
-data class UiMember(val name: String, val pid: Int, val mem: String)
-
-data class UiGroup(
-    val key: String,
-    val label: String,
-    val isApp: Boolean,
-    val mem: String,
-    val memKb: Long,
-    val pctFrac: Double,
-    val pctText: String,
-    /** True when `am kill` can safely reclaim this group's background memory. */
-    val canReclaim: Boolean,
-    val members: List<UiMember>,
-)
-
-data class UiSnapshot(
-    val totalKb: Long,
-    val usedKb: Long,
-    val totalText: String,
-    val usedText: String,
-    val usedFrac: Float,
-    val processCount: Int,
-    val groups: List<UiGroup>,
-)
-
-/** Per-group share of RAM at which a row is flagged red, like the CLI. */
-const val HOT_SHARE = 0.15
-
-/** Device-wide bar turns red at this used fraction. */
-const val HOT_BAR = 0.85f
 
 private val mono = FontFamily.Monospace
 
 @Composable
 fun MemhogsApp(
-    access: ShizukuAccess,
-    snapshot: UiSnapshot?,
-    gauge: Gauge?,
-    refreshing: Boolean,
-    error: String?,
-    reclaimMsg: String?,
-    shizukuInstalled: Boolean,
-    motion: Boolean,
+    state: MemhogsUiState,
     onRefresh: () -> Unit,
     onRequestPermission: () -> Unit,
     onOpenShizuku: () -> Unit,
@@ -126,6 +84,8 @@ fun MemhogsApp(
         )
     ) {
         Surface(Modifier.fillMaxSize(), color = Palette.Background) {
+            val access = state.access
+            val motion = state.motion
             var live by rememberSaveable { mutableStateOf(false) }
             LaunchedEffect(live, access) {
                 while (live && access == ShizukuAccess.READY) {
@@ -140,18 +100,18 @@ fun MemhogsApp(
                     .padding(horizontal = 16.dp)
             ) {
                 Header(
-                    snapshot = snapshot,
-                    gauge = gauge,
-                    refreshing = refreshing,
+                    snapshot = state.snapshot,
+                    gauge = state.gauge,
+                    refreshing = state.refreshing,
                     live = live && access == ShizukuAccess.READY,
                     showLive = access == ShizukuAccess.READY,
                     motion = motion,
                     onRefresh = onRefresh,
                     onToggleLive = { live = !live },
                 )
-                AnimatedVisibility(visible = reclaimMsg != null) {
+                AnimatedVisibility(visible = state.reclaimResult != null) {
                     Text(
-                        reclaimMsg ?: "",
+                        state.reclaimResult?.message() ?: "",
                         fontFamily = mono,
                         fontSize = 12.sp,
                         color = Palette.Green,
@@ -160,15 +120,15 @@ fun MemhogsApp(
                 }
                 when (access) {
                     ShizukuAccess.NOT_RUNNING -> SetupScreen(
-                        shizukuInstalled, motion, onOpenShizuku, onGetShizuku, onRefresh,
+                        state.shizukuInstalled, motion, onOpenShizuku, onGetShizuku, onRefresh,
                     )
                     ShizukuAccess.NEEDS_PERMISSION -> PermissionScreen(motion, onRequestPermission)
                     ShizukuAccess.READY -> when {
-                        error != null -> ErrorScreen(error, motion, onRefresh)
-                        snapshot == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        state.error != null -> ErrorScreen(state.error.message(), motion, onRefresh)
+                        state.snapshot == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             EatingLoader(motion)
                         }
-                        else -> GroupList(snapshot, motion, onReclaim)
+                        else -> GroupList(state.snapshot, motion, onReclaim)
                     }
                 }
             }
@@ -622,6 +582,16 @@ private fun ErrorScreen(error: String, motion: Boolean, onRetry: () -> Unit) {
     TypedTerminal(lines, motion, Modifier.padding(top = 14.dp)) {
         TermButton("retry", onClick = onRetry)
     }
+}
+
+private fun ReclaimResult.message(): String = when (this) {
+    is ReclaimResult.Reclaimed -> "$label: reclaimed ${humanKb(freedKb)}"
+    is ReclaimResult.NothingToReclaim -> "$label: nothing to reclaim right now"
+}
+
+private fun LoadError.message(): String = when (this) {
+    LoadError.EmptyMeminfo -> "dumpsys returned no per-process data"
+    is LoadError.Failed -> detail
 }
 
 /**

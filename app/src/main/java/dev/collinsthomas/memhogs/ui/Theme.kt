@@ -17,3 +17,9 @@ object Palette {
     val Dim = Color(0xFF6B7280)
     val Text = Color(0xFFD7DEE8)
 }
+
+/** Per-group share of RAM at which a row is flagged red, like the CLI. */
+const val HOT_SHARE = 0.15
+
+/** Device-wide bar turns red at this used fraction. */
+const val HOT_BAR = 0.85f
