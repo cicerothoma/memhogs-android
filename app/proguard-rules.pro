@@ -4,3 +4,6 @@
 -keep class dev.collinsthomas.memhogs.shizuku.ShellService { *; }
 -keep class dev.collinsthomas.memhogs.IShellService { *; }
 -keep class dev.collinsthomas.memhogs.IShellService$Stub { *; }
+
+# ShizukuConnection falls back to this private method by reflection.
+-keepclassmembers class rikka.shizuku.Shizuku { *** newProcess(...); }

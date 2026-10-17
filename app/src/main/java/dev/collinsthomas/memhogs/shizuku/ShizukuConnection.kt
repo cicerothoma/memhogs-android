@@ -33,7 +33,7 @@ class ShizukuConnection(private val listener: Listener) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val shellStartTimedOut = Runnable {
         awaitingShell = false
-        listener.onShellTimedOut()
+        useProcessShell()
     }
 
     private val serviceArgs = Shizuku.UserServiceArgs(
@@ -101,6 +101,24 @@ class ShizukuConnection(private val listener: Listener) {
             mainHandler.postDelayed(shellStartTimedOut, SHELL_START_TIMEOUT_MILLIS)
         } catch (e: RuntimeException) {
             listener.onShellFailed(e)
+        }
+    }
+
+    // HyperOS 3 crashes Shizuku's user service starter in LoadedApk.makeApplicationInner,
+    // so run each command as a Shizuku remote process instead, which skips that starter.
+    private fun useProcessShell() {
+        try {
+            val newProcess = Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java,
+            ).apply { isAccessible = true }
+            shell = ShellService { command -> newProcess.invoke(null, command, null, null) as Process }
+            listener.onShellConnected()
+        } catch (e: ReflectiveOperationException) {
+            Log.w(TAG, "Shizuku has no remote process fallback", e)
+            listener.onShellTimedOut()
         }
     }
 
