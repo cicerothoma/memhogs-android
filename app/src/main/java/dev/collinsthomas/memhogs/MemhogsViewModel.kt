@@ -185,7 +185,12 @@ class MemhogsViewModel(application: Application) :
             .mapNotNull { (pid, hostUid) -> packageOfUid(hostUid)?.let { pid to it } }
             .toMap()
 
-    private fun packageOfUid(uid: Int): String? = packageManager.getPackagesForUid(uid)?.firstOrNull()
+    private fun packageOfUid(uid: Int): String? = try {
+        packageManager.getPackagesForUid(uid)?.firstOrNull()
+    } catch (e: SecurityException) {
+        // Hosts in another user, like HyperOS Second Space, are off limits to this app.
+        null
+    }
 
     private fun appLabel(packageName: String): String? =
         applicationInfo(packageName)?.let { packageManager.getApplicationLabel(it).toString() }
