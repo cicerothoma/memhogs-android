@@ -15,18 +15,18 @@ import androidx.compose.ui.window.Dialog
 import dev.collinsthomas.memhogs.R
 
 @Composable
-internal fun ForceStopDialog(label: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun ForceStopDialog(labels: List<String>, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(color = Palette.Surface, shape = RoundedCornerShape(10.dp)) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
                 Text(
-                    stringResource(R.string.force_stop_title, label),
+                    stringResource(R.string.force_stop_title, appsSubject(labels)),
                     fontFamily = Mono,
                     fontSize = 15.sp,
                     color = Palette.Amber,
                 )
                 Text(
-                    stringResource(R.string.force_stop_explanation),
+                    forceStopExplanation(labels.size),
                     fontFamily = Mono,
                     fontSize = 12.sp,
                     lineHeight = 18.sp,
@@ -40,4 +40,11 @@ internal fun ForceStopDialog(label: String, onConfirm: () -> Unit, onDismiss: ()
             }
         }
     }
+}
+
+@Composable
+private fun forceStopExplanation(appCount: Int): String = if (appCount == 1) {
+    stringResource(R.string.force_stop_explanation)
+} else {
+    stringResource(R.string.force_stop_explanation_several)
 }

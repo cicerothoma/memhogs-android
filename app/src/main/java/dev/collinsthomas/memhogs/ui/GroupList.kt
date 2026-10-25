@@ -60,12 +60,12 @@ internal fun GroupList(
     snapshot: UiSnapshot,
     motion: Boolean,
     onReclaim: (Set<String>) -> Unit,
-    onForceStop: (String) -> Unit,
+    onForceStop: (Set<String>) -> Unit,
 ) {
     var filter by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(setOf<String>()) }
     var selected by rememberSaveable { mutableStateOf(setOf<String>()) }
-    var confirmingForceStop by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmingForceStop by rememberSaveable { mutableStateOf(setOf<String>()) }
 
     val shown = remember(snapshot, filter) { snapshot.groups.matching(filter) }
     val selectedGroups = remember(snapshot, selected) { snapshot.groups.filter { it.key in selected } }
@@ -91,31 +91,35 @@ internal fun GroupList(
                             onToggleExpanded = { expanded = expanded.toggle(group.key) },
                             onToggleSelected = { selected = selected.toggle(group.key) },
                             onReclaim = { onReclaim(setOf(group.key)) },
-                            onForceStop = { confirmingForceStop = group.key },
+                            onForceStop = { confirmingForceStop = setOf(group.key) },
                         )
                     }
                 }
                 item { ListFooter(shown.size, snapshot.groups.size) }
             }
         }
-        snapshot.groups.find { it.key == confirmingForceStop }?.let { group ->
+        val forceStopping = snapshot.groups.filter { it.key in confirmingForceStop && it.canForceStop }
+        if (forceStopping.isNotEmpty()) {
             ForceStopDialog(
-                label = group.label,
+                labels = forceStopping.map { it.label },
                 onConfirm = {
-                    onForceStop(group.key)
-                    confirmingForceStop = null
+                    onForceStop(confirmingForceStop)
+                    confirmingForceStop = emptySet()
+                    selected = emptySet()
                 },
-                onDismiss = { confirmingForceStop = null },
+                onDismiss = { confirmingForceStop = emptySet() },
             )
         }
         if (selecting) {
             SelectionBar(
                 count = selectedGroups.size,
                 memText = humanReadableKb(selectedGroups.sumOf { it.memKb }),
+                canForceStop = selectedGroups.any { it.canForceStop },
                 onReclaim = {
                     onReclaim(selected)
                     selected = emptySet()
                 },
+                onForceStop = { confirmingForceStop = selected },
                 onCancel = { selected = emptySet() },
             )
         }
@@ -154,7 +158,14 @@ private fun ListFooter(shownCount: Int, totalCount: Int) {
 }
 
 @Composable
-private fun SelectionBar(count: Int, memText: String, onReclaim: () -> Unit, onCancel: () -> Unit) {
+private fun SelectionBar(
+    count: Int,
+    memText: String,
+    canForceStop: Boolean,
+    onReclaim: () -> Unit,
+    onForceStop: () -> Unit,
+    onCancel: () -> Unit,
+) {
     Column(Modifier.padding(vertical = 10.dp)) {
         Text(
             pluralStringResource(R.plurals.selection_summary, count, count, memText),
@@ -164,6 +175,9 @@ private fun SelectionBar(count: Int, memText: String, onReclaim: () -> Unit, onC
         )
         TermButtonRow(Modifier.padding(top = 8.dp)) {
             TermButton(stringResource(R.string.reclaim_button), onClick = onReclaim)
+            if (canForceStop) {
+                TermButton(stringResource(R.string.force_stop_button), accent = Palette.Dim, onClick = onForceStop)
+            }
             TermButton(stringResource(R.string.selection_cancel), accent = Palette.Dim, onClick = onCancel)
         }
     }

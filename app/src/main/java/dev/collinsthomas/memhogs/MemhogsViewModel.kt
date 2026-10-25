@@ -75,8 +75,8 @@ class MemhogsViewModel(application: Application) :
         reclaim(packageNames, UiGroup::canReclaim, IShellService::killBackgroundProcesses)
     }
 
-    fun forceStop(packageName: String) {
-        reclaim(setOf(packageName), UiGroup::canForceStop, IShellService::forceStop)
+    fun forceStop(packageNames: Set<String>) {
+        reclaim(packageNames, UiGroup::canForceStop, IShellService::forceStop)
     }
 
     private fun reclaim(
