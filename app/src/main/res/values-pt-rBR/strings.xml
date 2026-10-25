@@ -42,6 +42,7 @@
     <string name="force_stop_button">forçar parada</string>
     <string name="force_stop_title">forçar parada de %1$s?</string>
     <string name="force_stop_explanation">fecha o app mesmo se estiver aberto e para os serviços dele. alarmes, tarefas agendadas e notificações ficam desligados até você abrir o app de novo.</string>
+    <string name="force_stop_explanation_several">fecha os apps mesmo se estiverem abertos e para os serviços deles. alarmes, tarefas agendadas e notificações ficam desligados até você abrir cada app de novo.</string>
 
     <!-- Terminal transcripts are typed out line by line; keep lines under 42 characters. -->
     <string name="setup_error">erro: acesso ao shell necessário</string>

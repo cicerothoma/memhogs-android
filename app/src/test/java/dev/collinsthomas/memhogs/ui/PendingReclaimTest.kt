@@ -63,7 +63,30 @@ class PendingReclaimTest {
         assertNull(PendingReclaim.of(snapshot, setOf("surfaceflinger", "com.gone.app"), UiGroup::canReclaim))
     }
 
-    private fun group(target: ReclaimTarget, memKb: Long, canReclaim: Boolean = true) = UiGroup(
+    @Test
+    fun forceStopsOnlyTheSelectedAppsThatAreNotPersistent() {
+        val phone = ReclaimTarget(packageName = "com.android.phone", label = "Phone", beforeKb = 60_000)
+        val snapshot = snapshotWithGroups(
+            group(chrome, memKb = 200_000),
+            group(maps, memKb = 100_000),
+            group(phone, memKb = 60_000, canForceStop = false),
+        )
+        assertEquals(
+            PendingReclaim(listOf(chrome, maps)),
+            PendingReclaim.of(
+                snapshot,
+                setOf("com.android.chrome", "com.google.android.apps.maps", "com.android.phone"),
+                UiGroup::canForceStop,
+            ),
+        )
+    }
+
+    private fun group(
+        target: ReclaimTarget,
+        memKb: Long,
+        canReclaim: Boolean = true,
+        canForceStop: Boolean = canReclaim,
+    ) = UiGroup(
         key = target.packageName,
         label = target.label,
         isApp = canReclaim,
@@ -72,7 +95,7 @@ class PendingReclaimTest {
         shareOfRam = 0.0,
         shareText = "",
         canReclaim = canReclaim,
-        canForceStop = canReclaim,
+        canForceStop = canForceStop,
         members = emptyList(),
     )
 

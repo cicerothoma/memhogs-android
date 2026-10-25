@@ -35,7 +35,7 @@ fun MemhogsApp(
     onOpenShizuku: () -> Unit,
     onGetShizuku: () -> Unit,
     onReclaim: (Set<String>) -> Unit,
-    onForceStop: (String) -> Unit,
+    onForceStop: (Set<String>) -> Unit,
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -106,12 +106,16 @@ fun MemhogsApp(
 
 @Composable
 private fun ReclaimResult.message(): String {
-    val subject = labels.singleOrNull() ?: pluralStringResource(R.plurals.app_count, labels.size, labels.size)
+    val subject = appsSubject(labels)
     return when (this) {
         is ReclaimResult.Reclaimed -> stringResource(R.string.reclaim_freed, subject, humanReadableKb(freedKb))
         is ReclaimResult.NothingToReclaim -> stringResource(R.string.reclaim_nothing, subject)
     }
 }
+
+@Composable
+internal fun appsSubject(labels: List<String>): String =
+    labels.singleOrNull() ?: pluralStringResource(R.plurals.app_count, labels.size, labels.size)
 
 @Composable
 private fun LoadError.message(): String = when (this) {
