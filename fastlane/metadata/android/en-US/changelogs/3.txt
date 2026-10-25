@@ -1,0 +1,3 @@
+Force stop several apps at once: select them with a long-press,
+then tap force stop. One confirmation covers the selection, and
+persistent system apps are skipped.
