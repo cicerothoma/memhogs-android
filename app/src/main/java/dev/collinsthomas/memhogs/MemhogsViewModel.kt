@@ -2,6 +2,7 @@ package dev.collinsthomas.memhogs
 
 import android.app.ActivityManager
 import android.app.Application
+import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
@@ -38,7 +39,10 @@ class MemhogsViewModel(application: Application) :
 
     private val packageManager = application.packageManager
     private val activityManager = application.getSystemService(ActivityManager::class.java)
-    private val shizuku = ShizukuConnection(this)
+    private val shizuku = ShizukuConnection(
+        this,
+        application.getSharedPreferences("shizuku", Context.MODE_PRIVATE),
+    )
 
     private val mutableState = MutableStateFlow(MemhogsUiState())
     val state: StateFlow<MemhogsUiState> = mutableState.asStateFlow()
@@ -185,7 +189,11 @@ class MemhogsViewModel(application: Application) :
             .mapNotNull { (pid, hostUid) -> packageOfUid(hostUid)?.let { pid to it } }
             .toMap()
 
-    private fun packageOfUid(uid: Int): String? = packageManager.getPackagesForUid(uid)?.firstOrNull()
+    private fun packageOfUid(uid: Int): String? = try {
+        packageManager.getPackagesForUid(uid)?.firstOrNull()
+    } catch (e: SecurityException) {
+        null
+    }
 
     private fun appLabel(packageName: String): String? =
         applicationInfo(packageName)?.let { packageManager.getApplicationLabel(it).toString() }

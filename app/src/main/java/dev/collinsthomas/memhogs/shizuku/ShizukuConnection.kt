@@ -2,6 +2,7 @@ package dev.collinsthomas.memhogs.shizuku
 
 import android.content.ComponentName
 import android.content.ServiceConnection
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.IBinder
@@ -9,6 +10,7 @@ import android.os.Looper
 import android.util.Log
 import dev.collinsthomas.memhogs.BuildConfig
 import dev.collinsthomas.memhogs.IShellService
+import java.lang.reflect.Method
 import rikka.shizuku.Shizuku
 
 const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
@@ -16,8 +18,9 @@ const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 private const val PERMISSION_REQUEST_CODE = 1
 private const val TAG = "ShizukuConnection"
 private const val SHELL_START_TIMEOUT_MILLIS = 10_000L
+private const val NEEDS_PROCESS_SHELL = "needs_process_shell"
 
-class ShizukuConnection(private val listener: Listener) {
+class ShizukuConnection(private val listener: Listener, private val prefs: SharedPreferences) {
 
     interface Listener {
         fun onAccessChanged(access: ShizukuAccess)
@@ -33,7 +36,16 @@ class ShizukuConnection(private val listener: Listener) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val shellStartTimedOut = Runnable {
         awaitingShell = false
-        listener.onShellTimedOut()
+        if (shell == null) startProcessShellOrReportTimeout()
+    }
+
+    private val shizukuNewProcess: Method? by lazy {
+        try {
+            findShizukuNewProcess()
+        } catch (e: ReflectiveOperationException) {
+            Log.w(TAG, "Shizuku has no remote process fallback", e)
+            null
+        }
     }
 
     private val serviceArgs = Shizuku.UserServiceArgs(
@@ -47,6 +59,7 @@ class ShizukuConnection(private val listener: Listener) {
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
             stopAwaitingShell()
+            prefs.edit().putBoolean(NEEDS_PROCESS_SHELL, false).apply()
             shell = IShellService.Stub.asInterface(binder)
             listener.onShellConnected()
         }
@@ -99,9 +112,25 @@ class ShizukuConnection(private val listener: Listener) {
             Shizuku.bindUserService(serviceArgs, serviceConnection)
             awaitingShell = true
             mainHandler.postDelayed(shellStartTimedOut, SHELL_START_TIMEOUT_MILLIS)
+            if (prefs.getBoolean(NEEDS_PROCESS_SHELL, false)) shizukuNewProcess?.let(::useProcessShell)
         } catch (e: RuntimeException) {
             listener.onShellFailed(e)
         }
+    }
+
+    private fun startProcessShellOrReportTimeout() {
+        val newProcess = shizukuNewProcess
+        if (newProcess == null) {
+            listener.onShellTimedOut()
+        } else {
+            useProcessShell(newProcess)
+        }
+    }
+
+    private fun useProcessShell(newProcess: Method) {
+        shell = ShizukuProcessShell(newProcess)
+        prefs.edit().putBoolean(NEEDS_PROCESS_SHELL, true).apply()
+        listener.onShellConnected()
     }
 
     private fun unbindShell() {
