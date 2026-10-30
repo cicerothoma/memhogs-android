@@ -192,7 +192,6 @@ class MemhogsViewModel(application: Application) :
     private fun packageOfUid(uid: Int): String? = try {
         packageManager.getPackagesForUid(uid)?.firstOrNull()
     } catch (e: SecurityException) {
-        // Hosts in another user, like HyperOS Second Space, are off limits to this app.
         null
     }
 
