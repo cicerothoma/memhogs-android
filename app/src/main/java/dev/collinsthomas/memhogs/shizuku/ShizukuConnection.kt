@@ -10,6 +10,7 @@ import android.os.Looper
 import android.util.Log
 import dev.collinsthomas.memhogs.BuildConfig
 import dev.collinsthomas.memhogs.IShellService
+import java.lang.reflect.Method
 import rikka.shizuku.Shizuku
 
 const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
@@ -35,7 +36,16 @@ class ShizukuConnection(private val listener: Listener, private val prefs: Share
     private val mainHandler = Handler(Looper.getMainLooper())
     private val shellStartTimedOut = Runnable {
         awaitingShell = false
-        if (shell == null) useProcessShell()
+        if (shell == null) startProcessShellOrReportTimeout()
+    }
+
+    private val shizukuNewProcess: Method? by lazy {
+        try {
+            findShizukuNewProcess()
+        } catch (e: ReflectiveOperationException) {
+            Log.w(TAG, "Shizuku has no remote process fallback", e)
+            null
+        }
     }
 
     private val serviceArgs = Shizuku.UserServiceArgs(
@@ -102,30 +112,25 @@ class ShizukuConnection(private val listener: Listener, private val prefs: Share
             Shizuku.bindUserService(serviceArgs, serviceConnection)
             awaitingShell = true
             mainHandler.postDelayed(shellStartTimedOut, SHELL_START_TIMEOUT_MILLIS)
-            // Still bound above, so a Shizuku or OS update that fixes the starter switches back.
-            if (prefs.getBoolean(NEEDS_PROCESS_SHELL, false)) useProcessShell()
+            if (prefs.getBoolean(NEEDS_PROCESS_SHELL, false)) shizukuNewProcess?.let(::useProcessShell)
         } catch (e: RuntimeException) {
             listener.onShellFailed(e)
         }
     }
 
-    // HyperOS 3 crashes Shizuku's user service starter in LoadedApk.makeApplicationInner,
-    // so run each command as a Shizuku remote process instead, which skips that starter.
-    private fun useProcessShell() {
-        try {
-            val newProcess = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java,
-            ).apply { isAccessible = true }
-            shell = ShellService { command -> newProcess.invoke(null, command, null, null) as Process }
-            prefs.edit().putBoolean(NEEDS_PROCESS_SHELL, true).apply()
-            listener.onShellConnected()
-        } catch (e: ReflectiveOperationException) {
-            Log.w(TAG, "Shizuku has no remote process fallback", e)
+    private fun startProcessShellOrReportTimeout() {
+        val newProcess = shizukuNewProcess
+        if (newProcess == null) {
             listener.onShellTimedOut()
+        } else {
+            useProcessShell(newProcess)
         }
+    }
+
+    private fun useProcessShell(newProcess: Method) {
+        shell = ShizukuProcessShell(newProcess)
+        prefs.edit().putBoolean(NEEDS_PROCESS_SHELL, true).apply()
+        listener.onShellConnected()
     }
 
     private fun unbindShell() {
